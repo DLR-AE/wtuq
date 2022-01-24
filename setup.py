@@ -31,5 +31,6 @@ setup(
     ],
     python_requires='>=3.6',
     install_requires=wtuq_require,
+    package_data={'wtuq_framework': ['*.spec']},
 )
 

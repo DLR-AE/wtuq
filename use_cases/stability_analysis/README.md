@@ -65,10 +65,10 @@ often require specific packages and of course the required licenses/installed to
 
 All test cases can be recomputed starting from the uncertainpy data saved in .h5 files.
 
-Run: `python run_analysis -c config\<tool_name>\config_<tool_name>_case_study_1.txt
+Run: `python run_analysis.py -c config\<tool_name>\config_<tool_name>_case_study_1.txt
                          -rh5 reference_data\<tool_name>\case_study_1\uq_results\StabilityAnalysisModel.h5`
                          
-Example: `python run_analysis -c config\alaska\config_alaska_case_study_1.txt
+Example: `python run_analysis.py -c config\alaska\config_alaska_case_study_1.txt
                              -rh5 reference_data\alaska\case_study_1\uq_results\StabilityAnalysisModel.h5`
 
 

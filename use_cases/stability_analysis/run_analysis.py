@@ -5,7 +5,7 @@ import numpy as np
 import os
 import logging
 
-from preprocessor import PreProcessor
+#from preprocessor import PreProcessor
 from postprocessor import PostProcessor
 from libDMD import DMDanalysis
 from libMBC import MBCTransformation
