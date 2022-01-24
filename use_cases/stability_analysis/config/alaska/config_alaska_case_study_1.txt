@@ -1,0 +1,108 @@
+
+[framework]
+    [[uncertainty]]
+        base_directory = ./reference_data/alaska
+        run_directory = case_study_1
+        n_CPU = 8
+
+     [[parameters]]
+        [[[flap_stiffness]]]
+            [[[[cp00]]]]
+                [[[[[ x ]]]]]
+                fix = 0.0
+                [[[[[ y ]]]]]
+                fix = 1.0
+            [[[[cp01]]]]
+                [[[[[ x ]]]]]
+                fix = 0.5
+                [[[[[ y ]]]]]
+                min = 0.9
+                max = 1.1
+            [[[[cp02]]]]
+                [[[[[ x ]]]]]
+                fix = 1.0
+                [[[[[ y ]]]]]
+                fix = 1.0
+        [[[edge_stiffness]]]
+            [[[[cp00]]]]
+                [[[[[ x ]]]]]
+                fix = 0.0
+                [[[[[ y ]]]]]
+                fix = 1.0
+            [[[[cp01]]]]
+                [[[[[ x ]]]]]
+                fix = 0.5
+                [[[[[ y ]]]]]
+                min = 0.9
+                max = 1.1
+            [[[[cp02]]]]
+                [[[[[ x ]]]]]
+                fix = 1.0
+                [[[[[ y ]]]]]
+                fix = 1.0
+        [[[torsion_stiffness]]]
+            [[[[cp00]]]]
+                [[[[[ x ]]]]]
+                fix = 0.0
+                [[[[[ y ]]]]]
+                fix = 1.0
+            [[[[cp01]]]]
+                [[[[[ x ]]]]]
+                fix = 0.5
+                [[[[[ y ]]]]]
+                min = 0.9
+                max = 1.1
+            [[[[cp02]]]]
+                [[[[[ x ]]]]]
+                fix = 1.0
+                [[[[[ y ]]]]]
+                fix = 1.0
+
+[use_case]
+    [[tool]]
+        tool_name = alaska
+
+        # tool specific settings will be passed to the tool, examples are the path of an executable or command line options
+        path_alaska_templates = 'D:\10_Tools\Alaska\02_models\IWT_7p5_164\UQ_templates'
+        path_alaska_exe = 'D:\10_Tools\Alaska\01_tools\alaska_2020_2_0\Win32\bin\ala_batch.exe'
+        path_GEBT_template = 'D:\10_Tools\Alaska\02_models\IWT_7p5_164\UQ_templates\IWT_7p5_164_ID00_10_GEBT.xml'
+        path_fef_template = 'D:\10_Tools\Alaska\02_models\IWT_7p5_164\UQ_templates\FEBlade.fef'
+        path_alaska_model = 'D:\10_Tools\Alaska\02_models\IWT_7p5_164\UQ_ID00-10'
+
+    [[preprocessor]]
+        # location of the HAWC2 reference data (reduced stiffness blade) (absolute or relative to cwd)
+        reference_structural_data_path = ./reference_data/BECAS/reference_blade_reduced_stiffness/BECAS2HAWC2_30_30_70_st_HV.dat
+        # location of the BECAS cross section reference data directory (original IWT-175-6.4 blade) (absolute or relative to cwd)
+        BECAS_directory = ./reference_data/BECAS/reference_blade/c2_coordinate_system
+
+    [[postprocessor]]
+        # signal selection
+        var_name = torsion_b1, torsion_b2, torsion_b3
+        interp_radpos = 70,
+
+        # windowing method:
+        # 0 -> windowing based on user defined crop_window
+        # 1 -> windowing based on consistently increasing peaks signal
+        # 2 -> windowing based on best linear curve fit
+        # 3 -> windowing based on best exponential curve fit
+        # 4 -> windowing based on FFT
+        # 5 -> windowing based on window searching method (crop_window = fixed start point, amplitude increase)
+        # 6 -> windowing based on manually select window
+        # 7 -> windowing based on manually select window defined in file
+        window_method = 7
+        # crop_window -> only used if window_method = 0 or 5
+        crop_window = 0, 0
+
+        # damping determination method
+        # options are: DMD, log_decr, exp_fit, linear_fit
+        damping_method = DMD
+        # number of svd modes to be retained in DMD, 0 -> automatic determination by pyDMD
+        svd_rank = 0
+
+        # enable or disable MBC transformation
+        MBC_transf = False
+
+        plotting = True
+
+
+

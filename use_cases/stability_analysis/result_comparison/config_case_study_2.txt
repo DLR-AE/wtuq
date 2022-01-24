@@ -1,0 +1,19 @@
+
+base_directory = .\reference_data
+uncertainpy_results = bladed-lin\case_study_2\uq_results\StabilityAnalysisModel.h5, bladed\case_study_2\uq_results\StabilityAnalysisModel.h5, alaska\case_study_2\uq_results\StabilityAnalysisModel.h5, hawc2\case_study_2\uq_results\StabilityAnalysisModel.h5, hawcstab2\case_study_2\uq_results\StabilityAnalysisModel.h5, simpack\case_study_2\uq_results\StabilityAnalysisModel.h5
+
+model_name = StabilityAnalysisModel
+
+label_names = Bladed (lin.), Bladed, alaska/Wind, HAWC2, HAWCStab2 (lin.), Simpack
+
+output_dir = result_comparison\comparison_case_study_1
+
+bokeh_plot = True
+
+# uncertain parameter name translation
+# f.ex. flap_stiffness_cp01_y -> Flap Stiffness, edge_stiffness_cp01_y -> Edge Stiffness
+[param_name_translation]
+edge_stiffness_fixed_distr = Edge Stiffness
+cog_x_fixed_distr = Chordwise COG
+shear_center_x_fixed_distr = Chordwise SC
+principle_axis_orientation_cp01_y = PA Orientation

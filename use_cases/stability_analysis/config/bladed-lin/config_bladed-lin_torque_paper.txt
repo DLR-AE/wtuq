@@ -1,0 +1,68 @@
+
+[framework]
+    [[uncertainty]]
+        base_directory = ./reference_data/bladed-lin
+        run_directory = torque_paper
+        n_CPU = 6
+
+    [[parameters]]
+        [[[flap_stiffness]]]
+            param_distribution = normal
+            [[[[cp00]]]]
+                [[[[[ x ]]]]]
+                fix = 0.0
+                [[[[[ y ]]]]]
+                fix = 1.0
+            [[[[cp01]]]]
+                [[[[[ x ]]]]]
+                fix = 0.5
+                [[[[[ y ]]]]]
+                min = 0.95
+                max = 1.05
+            [[[[cp02]]]]
+                [[[[[ x ]]]]]
+                fix = 1.0
+                [[[[[ y ]]]]]
+                fix = 1.0
+        [[[edge_stiffness]]]
+            param_distribution = normal
+            [[[[cp00]]]]
+                [[[[[ x ]]]]]
+                fix = 0.0
+                [[[[[ y ]]]]]
+                fix = 1.0
+            [[[[cp01]]]]
+                [[[[[ x ]]]]]
+                fix = 0.5
+                [[[[[ y ]]]]]
+                min = 0.95
+                max = 1.05
+            [[[[cp02]]]]
+                [[[[[ x ]]]]]
+                fix = 1.0
+                [[[[[ y ]]]]]
+                fix = 1.0
+        [[[torsion_stiffness]]]
+            param_distribution = normal
+            [[[[cp00]]]]
+                [[[[[ x ]]]]]
+                fix = 0.0
+                [[[[[ y ]]]]]
+                fix = 1.0
+            [[[[cp01]]]]
+                [[[[[ x ]]]]]
+                fix = 0.5
+                [[[[[ y ]]]]]
+                min = 0.95
+                max = 1.05
+            [[[[cp02]]]]
+                [[[[[ x ]]]]]
+                fix = 1.0
+                [[[[[ y ]]]]]
+                fix = 1.0
+
+[use_case]
+    [[tool]]
+        tool_name = bladed-lin
+        template_project = './reference_data/bladed-lin/Linearization_12ms_reference.prj'
+        becas_geometry = './reference_data/bladed/examples/hawc2_becas_luh.dat'

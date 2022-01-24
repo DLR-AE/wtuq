@@ -1,0 +1,156 @@
+
+[framework]
+    [[uncertainty]]
+        base_directory = ./reference_data/alaska
+        run_directory = case_study_2
+        n_CPU = 8
+
+    [[parameters]]
+        [[[edge_stiffness]]]
+            radial_distribution = fixed
+            param_distribution = normal
+            [[[[cp00]]]]
+                [[[[[ x ]]]]]
+                fix = 0.0
+                [[[[[ y ]]]]]
+                min = 0.97
+                max = 1.03
+            [[[[cp01]]]]
+                [[[[[ x ]]]]]
+                fix = 1.0
+                [[[[[ y ]]]]]
+                min = 0.97
+                max = 1.03
+        [[[cog_x]]]
+            radial_distribution = fixed
+            param_distribution = normal
+            [[[[cp00]]]]
+                [[[[[ x ]]]]]
+                fix = 0.0
+                [[[[[ y ]]]]]
+                fix = 1.0
+            [[[[cp01]]]]
+                [[[[[ x ]]]]]
+                fix = 0.05
+                [[[[[ y ]]]]]
+                fix = 1.0
+            [[[[cp02]]]]
+                [[[[[ x ]]]]]
+                fix = 0.25
+                [[[[[ y ]]]]]
+                min = 0.998
+                max = 1.002
+            [[[[cp03]]]]
+                [[[[[ x ]]]]]
+                fix = 0.85
+                [[[[[ y ]]]]]
+                min = 0.9975
+                max = 1.0025
+            [[[[cp04]]]]
+                [[[[[ x ]]]]]
+                fix = 0.9
+                [[[[[ y ]]]]]
+                fix = 1.0
+            [[[[cp05]]]]
+                [[[[[ x ]]]]]
+                fix = 1.0
+                [[[[[ y ]]]]]
+                fix = 1.0
+        [[[shear_center_x]]]
+            radial_distribution = fixed
+            param_distribution = normal
+            [[[[cp00]]]]
+                [[[[[ x ]]]]]
+                fix = 0.0
+                [[[[[ y ]]]]]
+                fix = 1.0
+            [[[[cp01]]]]
+                [[[[[ x ]]]]]
+                fix = 0.05
+                [[[[[ y ]]]]]
+                fix = 1.0
+            [[[[cp02]]]]
+                [[[[[ x ]]]]]
+                fix = 0.15
+                [[[[[ y ]]]]]
+                min = 0.9984
+                max = 1.0016
+            [[[[cp03]]]]
+                [[[[[ x ]]]]]
+                fix = 0.85
+                [[[[[ y ]]]]]
+                min = 0.9955
+                max = 1.0045
+            [[[[cp04]]]]
+                [[[[[ x ]]]]]
+                fix = 0.9
+                [[[[[ y ]]]]]
+                fix = 1.0
+            [[[[cp05]]]]
+                [[[[[ x ]]]]]
+                fix = 1.0
+                [[[[[ y ]]]]]
+                fix = 1.0
+        [[[principle_axis_orientation]]]
+            param_distribution = normal
+            [[[[cp00]]]]
+                [[[[[ x ]]]]]
+                fix = 0.0
+                [[[[[ y ]]]]]
+                fix = 1.0
+            [[[[cp01]]]]
+                [[[[[ x ]]]]]
+                fix = 0.2
+                [[[[[ y ]]]]]
+                min = 0.99
+                max = 1.01
+            [[[[cp02]]]]
+                [[[[[ x ]]]]]
+                fix = 1.0
+                [[[[[ y ]]]]]
+                fix = 1.0
+
+[use_case]
+    [[tool]]
+        tool_name = alaska
+
+        # tool specific settings will be passed to the tool, examples are the path of an executable or command line options
+
+        path_alaska_templates = 'D:\10_Tools\Alaska\02_models\IWT_7p5_164\UQ_templates'
+        path_alaska_exe = 'D:\10_Tools\Alaska\01_tools\alaska_2020_2_0\Win32\bin\ala_batch.exe'
+        path_GEBT_template = 'D:\10_Tools\Alaska\02_models\IWT_7p5_164\UQ_templates\IWT_7p5_164_ID00_10_GEBT.xml'
+        path_fef_template = 'D:\10_Tools\Alaska\02_models\IWT_7p5_164\UQ_templates\FEBlade.fef'
+        path_alaska_model = 'D:\10_Tools\Alaska\02_models\IWT_7p5_164\UQ_ID00-10'
+
+    [[postprocessor]]
+
+        # signal selection
+        var_name = torsion_b1, torsion_b2, torsion_b3
+        interp_radpos = 50, 55, 60, 65, 70, 75
+
+        # windowing method:
+        # 0 -> windowing based on user defined crop_window
+        # 1 -> windowing based on consistently increasing peaks signal
+        # 2 -> windowing based on best linear curve fit
+        # 3 -> windowing based on best exponential curve fit
+        # 4 -> windowing based on FFT
+        # 5 -> windowing based on window searching method (crop_window = fixed start point, amplitude increase)
+        # 6 -> windowing based on manually select window
+        # 7 -> windowing based on manually select window defined in file
+        window_method = 0
+        # crop_window -> only used if window_method = 0 or 5
+        crop_window = 10, 30
+
+        # damping determination method
+        # options are: DMD, log_decr, exp_fit, linear_fit
+        damping_method = DMD
+        # number of svd modes to be retained in DMD, 0 -> automatic determination by pyDMD
+        svd_rank = 0
+
+        # enable or disable MBC transformation
+        MBC_transf = false
+        MBC_only_collective = false
+        MBC_only_cyclic = false
+
+        plotting = True
+

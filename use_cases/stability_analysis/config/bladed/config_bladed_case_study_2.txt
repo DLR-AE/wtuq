@@ -1,0 +1,133 @@
+
+[framework]
+    [[uncertainty]]
+        base_directory = ./reference_data/bladed
+        run_directory = case_study_2
+        n_CPU = 6
+
+    [[parameters]]
+        [[[edge_stiffness]]]
+            radial_distribution = fixed
+            param_distribution = normal
+            [[[[cp00]]]]
+                [[[[[ x ]]]]]
+                fix = 0.0
+                [[[[[ y ]]]]]
+                min = 0.97
+                max = 1.03
+            [[[[cp01]]]]
+                [[[[[ x ]]]]]
+                fix = 1.0
+                [[[[[ y ]]]]]
+                min = 0.97
+                max = 1.03
+        [[[cog_x]]]
+            radial_distribution = fixed
+            param_distribution = normal
+            [[[[cp00]]]]
+                [[[[[ x ]]]]]
+                fix = 0.0
+                [[[[[ y ]]]]]
+                fix = 1.0
+            [[[[cp01]]]]
+                [[[[[ x ]]]]]
+                fix = 0.05
+                [[[[[ y ]]]]]
+                fix = 1.0
+            [[[[cp02]]]]
+                [[[[[ x ]]]]]
+                fix = 0.25
+                [[[[[ y ]]]]]
+                min = 0.998
+                max = 1.002
+            [[[[cp03]]]]
+                [[[[[ x ]]]]]
+                fix = 0.85
+                [[[[[ y ]]]]]
+                min = 0.9975
+                max = 1.0025
+            [[[[cp04]]]]
+                [[[[[ x ]]]]]
+                fix = 0.9
+                [[[[[ y ]]]]]
+                fix = 1.0
+            [[[[cp05]]]]
+                [[[[[ x ]]]]]
+                fix = 1.0
+                [[[[[ y ]]]]]
+                fix = 1.0
+        [[[shear_center_x]]]
+            radial_distribution = fixed
+            param_distribution = normal
+            [[[[cp00]]]]
+                [[[[[ x ]]]]]
+                fix = 0.0
+                [[[[[ y ]]]]]
+                fix = 1.0
+            [[[[cp01]]]]
+                [[[[[ x ]]]]]
+                fix = 0.05
+                [[[[[ y ]]]]]
+                fix = 1.0
+            [[[[cp02]]]]
+                [[[[[ x ]]]]]
+                fix = 0.15
+                [[[[[ y ]]]]]
+                min = 0.9984
+                max = 1.0016
+            [[[[cp03]]]]
+                [[[[[ x ]]]]]
+                fix = 0.85
+                [[[[[ y ]]]]]
+                min = 0.9955
+                max = 1.0045
+            [[[[cp04]]]]
+                [[[[[ x ]]]]]
+                fix = 0.9
+                [[[[[ y ]]]]]
+                fix = 1.0
+            [[[[cp05]]]]
+                [[[[[ x ]]]]]
+                fix = 1.0
+                [[[[[ y ]]]]]
+                fix = 1.0
+        [[[principle_axis_orientation]]]
+            param_distribution = normal
+            [[[[cp00]]]]
+                [[[[[ x ]]]]]
+                fix = 0.0
+                [[[[[ y ]]]]]
+                fix = 1.0
+            [[[[cp01]]]]
+                [[[[[ x ]]]]]
+                fix = 0.2
+                [[[[[ y ]]]]]
+                min = 0.99
+                max = 1.01
+            [[[[cp02]]]]
+                [[[[[ x ]]]]]
+                fix = 1.0
+                [[[[[ y ]]]]]
+                fix = 1.0
+
+[use_case]
+    [[tool]]
+        tool_name = bladed
+        template_project = './reference_data/bladed/StabilityAnalysis_12ms_reference.prj'
+        becas_geometry = './reference_data/bladed/examples/hawc2_becas_luh.dat'
+
+    [[postprocessor]]
+        var_name = torsion_b1, torsion_b2, torsion_b3,
+        interp_radpos = 50, 55, 60, 65, 70, 75
+
+        # windowing method:
+        window_method = 5
+        crop_window = 10, 15
+
+        # damping determination method
+        damping_method = DMD
+        svd_rank = 0
+
+        plotting = True
+
+        MBC_transf = False

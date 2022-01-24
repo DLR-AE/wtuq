@@ -1,0 +1,141 @@
+
+
+[framework]
+    [[uncertainty]]
+        base_directory = ./reference_data/simpack
+        run_directory = case_study_2
+        n_CPU = 6
+
+    [[parameters]]
+        [[[edge_stiffness]]]
+            radial_distribution = fixed
+            param_distribution = normal
+            [[[[cp00]]]]
+                [[[[[ x ]]]]]
+                fix = 0.0
+                [[[[[ y ]]]]]
+                min = 0.97
+                max = 1.03
+            [[[[cp01]]]]
+                [[[[[ x ]]]]]
+                fix = 1.0
+                [[[[[ y ]]]]]
+                min = 0.97
+                max = 1.03
+        [[[cog_x]]]
+            radial_distribution = fixed
+            param_distribution = normal
+            [[[[cp00]]]]
+                [[[[[ x ]]]]]
+                fix = 0.0
+                [[[[[ y ]]]]]
+                fix = 1.0
+            [[[[cp01]]]]
+                [[[[[ x ]]]]]
+                fix = 0.05
+                [[[[[ y ]]]]]
+                fix = 1.0
+            [[[[cp02]]]]
+                [[[[[ x ]]]]]
+                fix = 0.25
+                [[[[[ y ]]]]]
+                min = 0.998
+                max = 1.002
+            [[[[cp03]]]]
+                [[[[[ x ]]]]]
+                fix = 0.85
+                [[[[[ y ]]]]]
+                min = 0.9975
+                max = 1.0025
+            [[[[cp04]]]]
+                [[[[[ x ]]]]]
+                fix = 0.9
+                [[[[[ y ]]]]]
+                fix = 1.0
+            [[[[cp05]]]]
+                [[[[[ x ]]]]]
+                fix = 1.0
+                [[[[[ y ]]]]]
+                fix = 1.0
+        [[[shear_center_x]]]
+            radial_distribution = fixed
+            param_distribution = normal
+            [[[[cp00]]]]
+                [[[[[ x ]]]]]
+                fix = 0.0
+                [[[[[ y ]]]]]
+                fix = 1.0
+            [[[[cp01]]]]
+                [[[[[ x ]]]]]
+                fix = 0.05
+                [[[[[ y ]]]]]
+                fix = 1.0
+            [[[[cp02]]]]
+                [[[[[ x ]]]]]
+                fix = 0.15
+                [[[[[ y ]]]]]
+                min = 0.9984
+                max = 1.0016
+            [[[[cp03]]]]
+                [[[[[ x ]]]]]
+                fix = 0.85
+                [[[[[ y ]]]]]
+                min = 0.9955
+                max = 1.0045
+            [[[[cp04]]]]
+                [[[[[ x ]]]]]
+                fix = 0.9
+                [[[[[ y ]]]]]
+                fix = 1.0
+            [[[[cp05]]]]
+                [[[[[ x ]]]]]
+                fix = 1.0
+                [[[[[ y ]]]]]
+                fix = 1.0
+        [[[principle_axis_orientation]]]
+            param_distribution = normal
+            [[[[cp00]]]]
+                [[[[[ x ]]]]]
+                fix = 0.0
+                [[[[[ y ]]]]]
+                fix = 1.0
+            [[[[cp01]]]]
+                [[[[[ x ]]]]]
+                fix = 0.2
+                [[[[[ y ]]]]]
+                min = 0.99
+                max = 1.01
+            [[[[cp02]]]]
+                [[[[[ x ]]]]]
+                fix = 1.0
+                [[[[[ y ]]]]]
+                fix = 1.0
+
+[use_case]
+    [[tool]]
+        tool_name = simpack
+
+        simpack_slv_exe = /opt/simpack/Simpack-2021/run/bin/linux64/simpack-slv
+        reference_model = /work/verd_he/projects/QuexUS/QUS-SP_new/uq_framework_model/reference_model
+        main_model_name = IWT_75_164_stab_analysis.spck
+        hawc2_to_simbeam_ref_excel = /work/verd_he/tools/hawc2-to-simbeam/hawc2-to-simbeam.xlsx
+        simbeamgen_dir = /work/verd_he/tools/SIMBEAMGEN
+        path_to_simbeam_config = /work/verd_he/projects/QuexUS/QUS-SP_new/uq_framework_model/run_scripts/config_simbeamgen_IWT_template.ini
+        run_scripts_directory = /work/verd_he/projects/QuexUS/QUS-SP_new/uq_framework_model/run_scripts
+
+    [[postprocessor]]
+        # signal selection
+        var_name = torsion_b1, torsion_b2, torsion_b3
+        interp_radpos = 20, 30, 40, 50, 60, 70, 80
+
+        # windowing method:
+        window_method = 0
+        crop_window = 5, 20
+
+        # damping determination method
+        damping_method = DMD
+        svd_rank = 20
+
+        plotting = True
+
+        MBC_transf = False

@@ -1,0 +1,272 @@
+
+[framework]
+    [[uncertainty]]
+        base_directory = ./reference_data/bladed
+        run_directory = reference_run_openfast
+        n_CPU = 1
+
+    [[parameters]]
+        [[[flap_stiffness]]]
+            [[[[cp00]]]]
+                [[[[[ x ]]]]]
+                fix = 0.0
+                [[[[[ y ]]]]]
+                fix = 1.0
+            [[[[cp01]]]]
+                [[[[[ x ]]]]]
+                fix = 0.5
+                [[[[[ y ]]]]]
+                min = 0.9
+                max = 1.1
+            [[[[cp02]]]]
+                [[[[[ x ]]]]]
+                fix = 1.0
+                [[[[[ y ]]]]]
+                fix = 1.0
+        [[[edge_stiffness]]]
+            [[[[cp00]]]]
+                [[[[[ x ]]]]]
+                fix = 0.0
+                [[[[[ y ]]]]]
+                fix = 1.0
+            [[[[cp01]]]]
+                [[[[[ x ]]]]]
+                fix = 0.5
+                [[[[[ y ]]]]]
+                min = 0.9
+                max = 1.1
+            [[[[cp02]]]]
+                [[[[[ x ]]]]]
+                fix = 1.0
+                [[[[[ y ]]]]]
+                fix = 1.0
+        [[[torsion_stiffness]]]
+            [[[[cp00]]]]
+                [[[[[ x ]]]]]
+                fix = 0.0
+                [[[[[ y ]]]]]
+                fix = 1.0
+            [[[[cp01]]]]
+                [[[[[ x ]]]]]
+                fix = 0.5
+                [[[[[ y ]]]]]
+                min = 0.9
+                max = 1.1
+            [[[[cp02]]]]
+                [[[[[ x ]]]]]
+                fix = 1.0
+                [[[[[ y ]]]]]
+                fix = 1.0
+
+# case study 1
+[parameters]
+    [[flap_stiffness]]
+        [[[cp00]]]
+            [[[[ x ]]]]
+            fix = 0.0
+            [[[[ y ]]]]
+            fix = 1.0
+        [[[cp01]]]
+            [[[[ x ]]]]
+            fix = 0.5
+            [[[[ y ]]]]
+            min = 0.9
+            max = 1.1
+        [[[cp02]]]
+            [[[[ x ]]]]
+            fix = 1.0
+            [[[[ y ]]]]
+            fix = 1.0
+    [[edge_stiffness]]
+        [[[cp00]]]
+            [[[[ x ]]]]
+            fix = 0.0
+            [[[[ y ]]]]
+            fix = 1.0
+        [[[cp01]]]
+            [[[[ x ]]]]
+            fix = 0.5
+            [[[[ y ]]]]
+            min = 0.9
+            max = 1.1
+        [[[cp02]]]
+            [[[[ x ]]]]
+            fix = 1.0
+            [[[[ y ]]]]
+            fix = 1.0
+    [[torsion_stiffness]]
+        [[[cp00]]]
+            [[[[ x ]]]]
+            fix = 0.0
+            [[[[ y ]]]]
+            fix = 1.0
+        [[[cp01]]]
+            [[[[ x ]]]]
+            fix = 0.5
+            [[[[ y ]]]]
+            min = 0.9
+            max = 1.1
+        [[[cp02]]]
+            [[[[ x ]]]]
+            fix = 1.0
+            [[[[ y ]]]]
+            fix = 1.0
+
+[use_case]
+    [[postprocessor]]
+
+        # signal selection
+        var_name = torsion_b1, torsion_b2, torsion_b3
+        interp_radpos = 50, 55, 60, 65, 70, 75
+
+        # windowing method:
+        window_method = 3
+        crop_window = 7, 18
+
+        # damping determination method
+        damping_method = DMD
+        svd_rank = 0
+
+        plotting = True
+        MBC_transf = False
+
+    [[tool]]
+        tool_name = openfast
+
+        # path to openfast exe
+        openfast_version = \OpenFAST_v3_0_0_Single_Win64.exe
+        exe_dir = H:\iwes-openfast\simulation-tools\bin_OpenFAST
+
+        # path to directory where the openfast template is temporarely saved
+        #openfast_temp = ..\..\..\quexus-intermediate/uncertainty_quantification/reference_data/openfast
+
+        # path to openfast master model
+        master_dir= ..\..\..\quexus\models\OpenFAST
+
+        # path to openfast templates
+        template_dir = ..\..\..\quexus-intermediate/uncertainty_quantification/source/example_data
+
+        # beamdyn option
+        BeamDyn_bool = True # if False, then ElastoDyn, if True, then BeamDyn
+
+        # type
+        blade_type = QuexusBladeLight
+
+        # control settings (optional)
+        openfast_temp = ..\..\..\quexus-intermediate/uncertainty_quantification/reference_data/openfast/NoTower_NoShaft_NoUA/reference_selection
+        ## OP 1
+        #input_windspeed = 3
+        #input_pitch = 1.879049
+        #input_rotorspeed = 5
+
+        ## OP 2
+        #input_windspeed = 4
+        #input_pitch = 0.000535
+        #input_rotorspeed = 5
+
+        ## OP 3
+        #input_windspeed = 5
+        #input_pitch = 0.000562
+        #input_rotorspeed = 5
+
+        ## OP 4
+        #input_windspeed = 6
+        #input_pitch = 0.000568
+        #input_rotorspeed = 5.873761
+
+        ## OP 5
+        #input_windspeed = 7
+        #input_pitch = 0.000568
+        #input_rotorspeed = 6.865111
+
+        ## OP 6
+        #input_windspeed = 8
+        #input_pitch = 0.000568
+        #input_rotorspeed = 7.876322
+
+        ## OP 7
+        #input_windspeed = 9
+        #input_pitch = 0.000568
+        #input_rotorspeed = 8.911700
+
+        ## OP 8
+        #input_windspeed = 10
+        #input_pitch = 0.000568
+        #input_rotorspeed = 9.973185
+
+        # OP 9
+        input_windspeed = 11
+        input_pitch = 0.000471
+        input_rotorspeed = 10
+
+        ## OP 10
+        #input_windspeed = 12
+        #input_pitch = 0.004077
+        #input_rotorspeed = 10
+
+        ## OP 11
+        #input_windspeed = 13
+        #input_pitch = 5.032251
+        #input_rotorspeed = 10
+
+        ## OP 12
+        #input_windspeed = 14
+        #input_pitch = 7.279723
+        #input_rotorspeed = 10
+
+        ## OP 13
+        #input_windspeed = 15
+        #input_pitch = 8.971690
+        #input_rotorspeed = 10
+
+        ## OP 14
+        #input_windspeed = 16
+        #input_pitch = 10.415204
+        #input_rotorspeed = 10
+
+        ## OP 15
+        #input_windspeed = 17
+        #input_pitch = 11.740828
+        #input_rotorspeed = 10
+
+        ## OP 16
+        #input_windspeed = 18
+        #input_pitch = 12.972844
+        #input_rotorspeed = 10
+
+        ## OP 17
+        #input_windspeed = 19
+        #input_pitch = 14.148535
+        #input_rotorspeed = 10
+
+        ## OP 18
+        #input_windspeed = 20
+        #input_pitch = 15.285130
+        #input_rotorspeed = 10
+
+        ## OP 19
+        #input_windspeed = 21
+        #input_pitch = 16.383431
+        #input_rotorspeed = 10
+
+        ## OP 20
+        #input_windspeed = 22
+        #input_pitch = 17.460726
+        #input_rotorspeed = 10
+
+        ## OP 21
+        #input_windspeed = 23
+        #input_pitch = 18.518802
+        #input_rotorspeed = 10
+
+        ## OP 22
+        #input_windspeed = 24
+        #input_pitch = 19.560829
+        #input_rotorspeed = 10
+
+        ## OP 23
+        #input_windspeed = 25
+        #input_pitch = 20.583476
+        #input_rotorspeed = 10
+
+

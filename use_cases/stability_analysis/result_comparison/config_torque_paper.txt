@@ -1,0 +1,18 @@
+
+base_directory = .\reference_data
+uncertainpy_results = bladed-lin\torque_paper\uq_results\StabilityAnalysisModel.h5, bladed\torque_paper\uq_results\StabilityAnalysisModel.h5,
+
+model_name = StabilityAnalysisModel
+
+output_dir = result_comparison\comparison_torque_paper
+
+bokeh_plot = True
+
+label_names = Bladed (lin.), Bladed
+
+# uncertain parameter name translation
+# f.ex. flap_stiffness_cp01_y -> Flap Stiffness, edge_stiffness_cp01_y -> Edge Stiffness
+[param_name_translation]
+flap_stiffness_cp01_y = Flapwise Stiffness
+edge_stiffness_cp01_y = Edgewise Stiffness
+torsion_stiffness_cp01_y = Torsional Stiffness
