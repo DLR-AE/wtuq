@@ -111,7 +111,7 @@ You can contact us on hendrik.verdonck@dlr.de / oliver.hach@dlr.de, or by reachi
 ## Contributing
 This framework was the joint work of the DLR (Institute of Aeroelasticity), Leibniz University Hannover (Institut für
 Windenergiesysteme), and Nordex GmbH. 
-Active colloborators on the project were: 
+Active collaborators on the project were: 
 * [Hendrik Verdonck](https://github.com/hendrikverdonck), hendrik.verdonck@dlr.de
 * [Oliver Hach](https://github.com/hach-ol-dlr), oliver.hach@dlr.de
 * [Claudio Balzani](https://github.com/claudiobalzani), claudio.balzani@iwes.uni-hannover.de
