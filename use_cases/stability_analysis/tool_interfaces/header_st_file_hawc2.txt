@@ -1,0 +1,4 @@
+#1 Main data set for the blade
+ Radius              m                   x_m                 y_m                 r_ix                r_iy                x_s                 y_s                 E                   G                   I_x                 I_y                 K                   k_x                 k_y                 A                   theta_s             x_e                 y_e                
+ [m]                 [kg/m]              [m]                 [m]                 [m]                 [m]                 [m]                 [m]                 [N/m^2]             [N/m^2]             [m^4]               [m^4]               [m^4/rad]           [-]                 [-]                 [m^2]               [deg]               [m]                 [m]                
+$1 83 sections flexible blade properties modified by spline method
