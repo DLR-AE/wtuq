@@ -252,6 +252,8 @@ class PreProcessor:
 
             elif uncertain_parameter == 'shear_center_x':
                 if method == 'multiplicative':
+                    # This spline application is chosen very unlucky... Now the input changes sign, so when the
+                    # spline is >1 the delta actually moves in negative direction...
                     delta_sc_x = (1-self.apply_spline(spline_object, css.arclength)[0]) * \
                                  self.get_local_chord(css.arclength)
                 elif method == 'additive':
@@ -261,6 +263,8 @@ class PreProcessor:
 
             elif uncertain_parameter == 'shear_center_y':
                 if method == 'multiplicative':
+                    # This spline application is chosen very unlucky... Now the input changes sign, so when the
+                    # spline is >1 the delta actually moves in negative direction...
                     delta_sc_y = (1-self.apply_spline(spline_object, css.arclength)[0]) * \
                                  self.get_local_chord(css.arclength)
                 elif method == 'additive':
@@ -270,6 +274,8 @@ class PreProcessor:
 
             elif uncertain_parameter == 'cog_x':
                 if method == 'multiplicative':
+                    # This spline application is chosen very unlucky... Now the input changes sign, so when the
+                    # spline is >1 the delta actually moves in negative direction...
                     delta_cog_x = (1-self.apply_spline(spline_object, css.arclength)[0]) * \
                                   self.get_local_chord(css.arclength)
                 elif method == 'additive':
@@ -279,6 +285,8 @@ class PreProcessor:
 
             elif uncertain_parameter == 'cog_y':
                 if method == 'multiplicative':
+                    # This spline application is chosen very unlucky... Now the input changes sign, so when the
+                    # spline is >1 the delta actually moves in negative direction...
                     delta_cog_y = (1-self.apply_spline(spline_object, css.arclength)[0]) * \
                                   self.get_local_chord(css.arclength)
                 elif method == 'additive':

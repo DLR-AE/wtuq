@@ -1,10 +1,12 @@
 
 base_directory = .\reference_data
-uncertainpy_results = bladed-lin\case_study_1\uq_results\StabilityAnalysisModel.h5, bladed\case_study_1\uq_results\StabilityAnalysisModel.h5, alaska\case_study_1\uq_results\StabilityAnalysisModel.h5, hawc2\case_study_1\uq_results\StabilityAnalysisModel.h5, hawcstab2\case_study_1\uq_results\StabilityAnalysisModel.h5, simpack\case_study_1\uq_results\StabilityAnalysisModel.h5
+uncertainpy_results = hawc2\case_study_1\uq_results\StabilityAnalysisModel.h5, hawcstab2\case_study_1\uq_results\StabilityAnalysisModel.h5, bladed\case_study_1\uq_results\StabilityAnalysisModel.h5, bladed-lin\case_study_1\uq_results\StabilityAnalysisModel.h5, alaska\case_study_1\uq_results\StabilityAnalysisModel.h5, simpack\case_study_1\uq_results\StabilityAnalysisModel.h5
 
 model_name = StabilityAnalysisModel
 
-label_names = Bladed (lin.), Bladed, alaska/Wind, HAWC2, HAWCStab2 (lin.), Simpack
+label_names = HAWC2, HAWCStab2 (lin.), Bladed, Bladed (lin.), alaska/Wind, Simpack
+
+predefined_colors = C2, C5, C1, C6, C0, C4
 
 output_dir = result_comparison\comparison_case_study_1
 

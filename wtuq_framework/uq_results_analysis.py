@@ -11,6 +11,7 @@ import numpoly
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.colors import LightSource
+import matplotlib.cm as cm
 import uncertainpy as un
 import pandas as pd
 from configobj import ConfigObj
@@ -20,6 +21,9 @@ from bokeh.plotting import figure, show, output_file
 from bokeh.palettes import inferno, plasma, viridis
 from bokeh.models import HoverTool
 import itertools
+import plotly.express as px
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 
 
 class UQResultsAnalysis(object):
@@ -43,6 +47,8 @@ class UQResultsAnalysis(object):
         List with paths to the standard uncertainpy .h5 output files
     run_label : dict
         Dictionary with legend name for each of the uncertainpy results
+    run_color : dict
+        Dictionary with matplotlib color specification for each of the uncertainpy results
     output_dir : dict
         Output directory where figures are saved
     param_name_translation : dict
@@ -76,21 +82,30 @@ class UQResultsAnalysis(object):
     MAE_loo : dict
         Mean absolute error between the leave-one-out surrogate model and training data values for each of the uncertainpy results
     """
-    def __init__(self, uncertainpy_results, label_names=[], output_dir=None, param_name_translation={}):
+    def __init__(self, uncertainpy_results, label_names=[], predefined_colors=[], output_dir=None, param_name_translation={}):
         # check if uncertainpy result exists
         self.uncertainpy_results = list()
         self.run_label = dict()
+        self.run_color = dict()
+
         if len(label_names) != len(uncertainpy_results):
             print('No label names requested or length of the requested label names does not match length of uncertainpy'
-                  'results. uncertainpy_results names will be used as label legend')
+                  ' results. uncertainpy_results names will be used as label legend')
             label_names = uncertainpy_results
 
-        for uq_result, label_name in zip(uncertainpy_results, label_names):
+        if len(predefined_colors) != len(uncertainpy_results):
+            print('No predefined colors requested or length of the requested predefined colors does not match length of '
+                  'uncertainpy results. Default matplotlib color cycler will be used.')
+            predefined_colors = [None] * len(uncertainpy_results)
+
+        for uq_result, label_name, predefined_color in zip(uncertainpy_results, label_names, predefined_colors):
             if os.path.isfile(uq_result) is True:
                 self.uncertainpy_results.append(uq_result)
                 self.run_label[uq_result] = label_name
+                self.run_color[uq_result] = predefined_color
             else:
                 print(uq_result, 'can not be found')
+
         self.param_name_translation = param_name_translation
         if output_dir is None:
             if len(uncertainpy_results) == 1:
@@ -232,7 +247,8 @@ class UQResultsAnalysis(object):
         fig1 = plt.figure('Comparison QoI evaluations')
         ax = fig1.gca()
         for uq_result in self.evaluations:
-            ax.plot(self.evaluations[uq_result], '-*', markersize=10, label=self.run_label[uq_result])
+            ax.plot(self.evaluations[uq_result], '-*', markersize=10,
+                    color=self.run_color[uq_result], label=self.run_label[uq_result])
         ax.grid(True)
         ax.set_xlabel('Framework iteration')
         ax.set_ylabel('QoI evaluation')
@@ -245,7 +261,7 @@ class UQResultsAnalysis(object):
         ax2 = fig2.gca()
         for uq_result in self.evaluations:
             ax2.plot((self.evaluations[uq_result][~np.isnan(self.evaluations[uq_result])] - np.mean(np.array(self.evaluations[uq_result][~np.isnan(self.evaluations[uq_result])]))) / np.mean(np.array(self.evaluations[uq_result][~np.isnan(self.evaluations[uq_result])])) * 100, '-*',
-                     markersize=10, label=self.run_label[uq_result]+' - DE-MEANED')
+                     markersize=10, color=self.run_color[uq_result], label=self.run_label[uq_result]+' - DE-MEANED')
         ax2.grid(True)
         ax2.set_xlabel('Framework iteration')
         ax2.set_ylabel('(QoI - mean(QoI)/mean(QoI) [%]')
@@ -266,9 +282,9 @@ class UQResultsAnalysis(object):
         for uq_result in self.evaluations:
             if uq_result in self.evaluations_hat:
                 ax1.scatter(self.evaluations[uq_result], self.evaluations_hat[uq_result],
-                            label=self.run_label[uq_result])
+                            color=self.run_color[uq_result], label=self.run_label[uq_result])
                 ax2.scatter(self.evaluations[uq_result], self.evaluations_loo[uq_result],
-                            label=self.run_label[uq_result])
+                            color=self.run_color[uq_result], label=self.run_label[uq_result])
         ax1.set_ylabel('Surrogate Model evaluations')
         ax2.set_ylabel('Leave-one-out surrogate model evaluations')
         for ax in [ax1, ax2]:
@@ -287,7 +303,7 @@ class UQResultsAnalysis(object):
         for uq_result in self.evaluations:
             if uq_result in self.evaluations_hat:
                 ax1.scatter(self.evaluations[uq_result], self.evaluations_hat[uq_result],
-                            label=self.run_label[uq_result])
+                            color=self.run_color[uq_result], label=self.run_label[uq_result])
         ax1.set_ylabel('Surrogate Model evaluations')
         ax1.grid(True)
         ax1.set_xlabel('Model evaluations (training data)')
@@ -304,7 +320,7 @@ class UQResultsAnalysis(object):
         for uq_result in self.evaluations:
             if uq_result in self.evaluations_hat:
                 ax2.scatter(self.evaluations[uq_result], self.evaluations_loo[uq_result],
-                            label=self.run_label[uq_result])
+                            color=self.run_color[uq_result], label=self.run_label[uq_result])
         ax2.set_ylabel('Leave-one-out surrogate model evaluations')
         ax2.grid(True)
         ax2.set_xlabel('Model evaluations (training data)')
@@ -322,12 +338,14 @@ class UQResultsAnalysis(object):
             fig = plt.figure(name)
             ax = fig.gca()
             error_norm = dict()  # key => legend label
+            color_list = list()
             for uq_result in self.sobol_first:
                 error_norm[self.run_label[uq_result]] = [error_evaluations[uq_result], error_loo[uq_result]]
+                color_list.append(self.run_color[uq_result])
             index = ['Surrogate model', 'Leave-one-out surrogate model']
             df1 = pd.DataFrame(error_norm, index=index)
             # useful settings: rot -> rotation xlabel, color={"<label1>": "green", "<label2>": "red"}
-            df1.plot.bar(ax=ax, rot=0)
+            df1.plot.bar(ax=ax, rot=0, color=color_list)
             ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
             ax.grid(axis='y')
             ax.set_axisbelow(True)
@@ -362,17 +380,19 @@ class UQResultsAnalysis(object):
 
         sobol_first_pd_dict = dict()  # key => legend label
         sobol_total_pd_dict = dict()  # key => legend label
+        color_list = list()
         for uq_result in self.sobol_first:
             sobol_first_pd_dict[self.run_label[uq_result]] = self.sobol_first[uq_result]
             sobol_total_pd_dict[self.run_label[uq_result]] = self.sobol_total[uq_result]
+            color_list.append(self.run_color[uq_result])
 
         # assumed that all uncertain_param_names are the same, so just last uq_result used
         index = self.uncertain_param_names[uq_result]
         df1 = pd.DataFrame(sobol_first_pd_dict, index=index)
-        df1.plot.bar(ax=ax1, rot=0)
+        df1.plot.bar(ax=ax1, rot=0, color=color_list)
         ax1.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
         df2 = pd.DataFrame(sobol_total_pd_dict, index=index)
-        df2.plot.bar(ax=ax2, rot=0, legend=False)
+        df2.plot.bar(ax=ax2, rot=0, color=color_list, legend=False)
 
         ax1.set_ylabel('First Order Sobol Index')
         ax1.grid(axis='y')
@@ -382,6 +402,62 @@ class UQResultsAnalysis(object):
         ax2.set_axisbelow(True)
         fig.savefig(os.path.join(self.output_dir, 'comparison_sobol_indices.png'), bbox_inches='tight', dpi=300)
         plt.close(fig)
+
+        fig = plt.figure('Comparison Sobol Indices - Pie Chart', figsize=(14, 3))
+        for iter, uq_result in enumerate(self.sobol_first):
+            # fig = plt.figure(uq_result)
+            ax = fig.add_subplot(1, len(self.sobol_first), iter+1)
+            # ax.pie(self.sobol_first[uq_result], shadow=False, autopct='%1.1f%%', pctdistance=1.3)
+            ax.pie(self.sobol_first[uq_result], shadow=False, pctdistance=1.3)
+
+        ax.legend(bbox_to_anchor=(1.2, 0.5), loc='center left', labels=self.uncertain_param_names[uq_result])
+        plt.tight_layout()
+        # plt.show()
+
+        specs = [val for val in [{'type': 'domain'}] for _ in range(len(self.sobol_first))]
+        colors = [
+            '#1f77b4',  # muted blue
+            '#ff7f0e',  # safety orange
+            '#2ca02c',  # cooked asparagus green
+            '#d62728',  # brick red
+            '#9467bd',  # muted purple
+            '#8c564b',  # chestnut brown
+            '#e377c2',  # raspberry yogurt pink
+            '#7f7f7f',  # middle gray
+            '#bcbd22',  # curry yellow-green
+            '#17becf'  # blue-teal
+        ]
+
+        fig = make_subplots(1, len(self.sobol_first), specs=[specs], subplot_titles=list(self.run_label.values()))
+        for iter, uq_result in enumerate(self.sobol_first):
+            colors[len(self.uncertain_param_names[uq_result])] = 'black'
+            fig.add_trace(go.Pie(labels=self.uncertain_param_names[uq_result] + ['Interaction'],
+                                 values=np.hstack((self.sobol_first[uq_result], 1-sum(self.sobol_first[uq_result]))),
+                                 name=self.run_label[uq_result],
+                                 marker=dict(colors=colors),
+                                 direction='clockwise',
+                                 sort=False,
+                                 texttemplate="%{percent:.2%f}"), 1, iter+1)
+
+        fig.update_layout(legend=dict(font=dict(size=16), orientation="h", yanchor='top', y=0.1, xanchor='center', x=0.5))
+        fig.write_image(os.path.join(self.output_dir, 'comparison_sobol_indices_first_pie_chart.pdf'),
+                        width=1440, height=445)
+
+        fig = make_subplots(1, len(self.sobol_total), specs=[specs], subplot_titles=list(self.run_label.values()))
+        for iter, uq_result in enumerate(self.sobol_total):
+            fig.add_trace(go.Pie(labels=self.uncertain_param_names[uq_result],
+                                 values=(self.sobol_total[uq_result]),
+                                 name=self.run_label[uq_result],
+                                 marker=dict(colors=colors),
+                                 rotation=0,
+                                 direction='clockwise',
+                                 textinfo='value',
+                                 sort=False,
+                                 texttemplate="%{value:.2f}"), 1, iter+1)
+
+        fig.update_layout(legend=dict(font=dict(size=16), orientation="h", yanchor='top', y=0.1, xanchor='center', x=0.5))
+        fig.write_image(os.path.join(self.output_dir, 'comparison_sobol_indices_total_pie_chart.pdf'),
+                        width=1440, height=445)
 
     def compare_QoI_evals_per_iter_bokeh(self):
         """
@@ -493,7 +569,7 @@ class UQResultsAnalysis(object):
             show(p)
 
         plot_surro_bool = False
-        p = figure(plot_width=1800, plot_height=900, title='RMSD')
+        p = figure(plot_width=1800, plot_height=900, title='NRMSD leave-one-out surrogate model')
         p.add_tools(hover5)
         for i, (uq_result, color) in enumerate(zip(self.evaluations, colors)):
             if uq_result in self.NRMSD_loo:
@@ -506,7 +582,7 @@ class UQResultsAnalysis(object):
             if len(self.evaluations) > 35:
                 self.bokeh_legend_as_small_as_possible(p)
             p.xaxis.axis_label = 'iteration'
-            p.yaxis.axis_label = 'Leave-one.out NRMSD in %'
+            p.yaxis.axis_label = 'Leave-one-out NRMSD in %'
             output_file(os.path.join(self.output_dir, 'NRMSD_leave_one_out.html'))
             show(p)
 
@@ -862,6 +938,7 @@ if __name__ == "__main__":
     uq_plots = UQResultsAnalysis(uncertainpy_results,
                                  label_names=config['label_names'],
                                  output_dir=config['output_dir'],
+                                 predefined_colors=config['predefined_colors'],
                                  param_name_translation=config['param_name_translation'])
     uq_plots.read_results(model_name=config['model_name'])
     uq_plots.show_input_parameters_per_iter()

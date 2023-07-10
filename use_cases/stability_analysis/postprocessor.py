@@ -8,7 +8,7 @@ Collection of methods to define frequency content and damping of transient time 
 import matplotlib.pyplot as plt
 import numpy as np
 import os 
-from scipy.signal import find_peaks  # new feature (scipy 1.1.0)
+from scipy.signal import find_peaks, resample  # find peaks = new feature (scipy 1.1.0)
 from scipy.optimize import curve_fit
 from scipy.interpolate import interp1d
 import logging
@@ -69,7 +69,8 @@ class PostProcessor(object):
         self.signal = signal
         self.result_dir = result_dir
 
-    def read_results(self, var_names, interp_radpos=None, nr_radpos=None):
+    def read_results(self, var_names, interp_radpos=None, nr_radpos=None,
+                     downsampling_flag=False, downsampling_frequency=None):
         """
         Read result dictionary
 
@@ -82,6 +83,10 @@ class PostProcessor(object):
             Radial positions for interpolation of a 2D data set
         nr_radpos : int, optional
             Number of equidistantly spaced radial positions to be used for each of the variables
+        downsampling_flag : bool, optional
+            Flag to indicate if the time series have to be downsampled
+        downsampling_frequency : float, optional
+            Sample rate to downsample to (Hz!)
 
         Raises
         ------
@@ -96,20 +101,14 @@ class PostProcessor(object):
             - (radpos: only if var_name is a 2D signal)
         """
         logger = logging.getLogger('quexus.uq.postprocessor.read_results')
-        # read time and determine sampling time
-        self.time = np.squeeze(self.resultdict['time'])
-        # determine sampling time from time signal
-        # sometimes the time stamps are not accurate enough (in Bladed f.ex.: 0.0, 0.009990785, 0.02, 0.03, ...), this
-        # might lead to problems later on
-        dt1 = self.time[1] - self.time[0]
-        dtfull = (self.time[-1] - self.time[0]) / (np.size(self.time) - 1)
-        if dt1 != dtfull:
-            logger.debug('sampling time determined as time[1] - time[0] is not the same as '
-                         'time[end] - time[0] / total time')
-            logger.debug(str(dtfull) + 's used as sampling time')
-        self.sampling_time = dtfull
-        logger.debug('Sampling time = {}'.format(self.sampling_time))
-        
+
+        # DOWNSAMPLING
+        if downsampling_flag is True:
+            logger.debug('Time series will be downsampled to sampling frequency {} Hz'.format(downsampling_frequency))
+            self.downsample_resultdict(downsampling_frequency)
+
+        self.time, self.sampling_time = self.get_time_details_resultdict()
+
         radpos_list = []
         signal_list = []
         for var_name in var_names:
@@ -152,7 +151,71 @@ class PostProcessor(object):
             self.radpos = np.array(radpos_list)
         else:
             logger.debug('only 1D arrays used in input, no radpos available')
-            self.radpos = np.array([])      
+            self.radpos = np.array([])
+
+    def get_time_details_resultdict(self):
+        """
+        determine characteristics of the time series in the resultdict
+
+        Returns
+        -------
+        time : 1D array
+            interpolated signal at the interp_radpos
+        sampling_time : float
+            sampling time of the time signal in the resultdict
+        """
+        logger = logging.getLogger('quexus.uq.postprocessor.get_time_details_resultdict')
+
+        time = np.squeeze(self.resultdict['time'])
+
+        # determine sampling time from time signal
+        # sometimes the time stamps are not accurate enough (in Bladed f.ex.: 0.0, 0.009990785, 0.02, 0.03, ...), this
+        # might lead to problems later on
+        dt1 = time[1] - time[0]
+        dtfull = (time[-1] - time[0]) / (np.size(time) - 1)
+        if dt1 != dtfull:
+            logger.debug('sampling time determined as time[1] - time[0] is not the same as '
+                         'time[end] - time[0] / total time')
+            logger.debug(str(dtfull) + 's used as sampling time')
+        sampling_time = dtfull
+        logger.debug('Sampling time = {}'.format(sampling_time))
+
+        return time, sampling_time
+
+    def downsample_resultdict(self, downsampling_frequency):
+        """
+        Downsample the time series which are provided in the resultdict
+
+        Parameters
+        ----------
+        downsampling_frequency : float
+            sampling frequency (in Hz) to downsample to
+
+        Returns
+        -------
+        """
+        orig_time, orig_sampling_time = self.get_time_details_resultdict()
+
+        nr_new_samples = round(np.size(orig_time) * downsampling_frequency / (1/orig_sampling_time))
+
+        for key in self.resultdict:
+            if key == 'time':
+                continue
+
+            if np.size(orig_time) not in self.resultdict[key].shape:
+                continue
+            else:
+                dim = find_corresponding_axis(self.resultdict[key], np.size(orig_time), 3)
+                self.resultdict[key] = resample(self.resultdict[key], nr_new_samples, axis=dim)
+
+        self.resultdict['time'] = np.linspace(np.squeeze(self.resultdict['time'])[0],
+                                              np.squeeze(self.resultdict['time'])[-1],
+                                              nr_new_samples, endpoint=False)
+
+        # self.resultdict['time'] = self.resultdict['time'][::10]
+        # self.resultdict['torsion_b1'] = self.resultdict['torsion_b1'][:, ::10]
+        # self.resultdict['torsion_b2'] = self.resultdict['torsion_b2'][:, ::10]
+        # self.resultdict['torsion_b3'] = self.resultdict['torsion_b3'][:, ::10]
 
     @staticmethod
     def interpolate_signals(signal, radpos, interp_radpos=None, nr_radpos=None):

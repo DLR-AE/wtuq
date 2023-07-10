@@ -78,7 +78,7 @@
     [[postprocessor]]
         # signal selection
         var_name = torsion_b1, torsion_b2, torsion_b3
-        interp_radpos = 70,
+        interp_radpos = 50, 55, 60, 65, 70, 75
 
         # windowing method:
         # 0 -> windowing based on user defined crop_window
@@ -97,12 +97,13 @@
         # options are: DMD, log_decr, exp_fit, linear_fit
         damping_method = DMD
         # number of svd modes to be retained in DMD, 0 -> automatic determination by pyDMD
-        svd_rank = 0
+        svd_rank = 20
 
         # enable or disable MBC transformation
-        MBC_transf = False
+        MBC_transf = True
 
         plotting = True
 
-
+        downsampling_flag = True
+        downsampling_freq = 8  # Hz
 

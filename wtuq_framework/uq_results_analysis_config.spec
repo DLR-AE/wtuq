@@ -12,6 +12,10 @@ model_name = string(default='Model')
 # list needs to have same length as uncertainpy results
 label_names = list(default=list())
 
+# predefined colors for each of the datasets
+# list needs to have same length as uncertainpy results
+predefined_colors = list(default=list())
+
 # name of output directory, relative to working directory
 output_dir = string(default='results')
 

@@ -227,7 +227,7 @@ def find_corresponding_axis(arr, size, max_dim):
     """
 
     if len(arr.shape)>max_dim:
-        raise ValueError('Only' + str(max_dim) + '-dimensional arrays are allowed')
+        raise ValueError('Only ' + str(max_dim) + '-dimensional arrays are allowed')
 
     if arr.shape.count(size) == 0:
         print('WARNING: Dimensions of arrays to be correlated do not match')

@@ -87,4 +87,7 @@
 
         plotting = True
 
-        MBC_transf = False
+        MBC_transf = True
+		
+        downsampling_flag = True
+        downsampling_freq = 8  # Hz

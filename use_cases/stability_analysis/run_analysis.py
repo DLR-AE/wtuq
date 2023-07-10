@@ -5,7 +5,7 @@ import numpy as np
 import os
 import logging
 
-#from preprocessor import PreProcessor
+from preprocessor import PreProcessor
 from postprocessor import PostProcessor
 from libDMD import DMDanalysis
 from libMBC import MBCTransformation
@@ -111,8 +111,12 @@ class StabilityAnalysisModel(Model):
         # args:
         # - variable name (key of resultdict),
         # - interp_radpos = optional radpos positions for interpolation of 2D array
+        # - downsampling = downsample time series
+        # - downsampling_frequency = frequency to downsample to
         postprocess.read_results(self.postprocessor_config['var_name'],
-                                 interp_radpos=interp_radpos)
+                                 interp_radpos=interp_radpos,
+                                 downsampling_flag=self.postprocessor_config['downsampling_flag'],
+                                 downsampling_frequency=self.postprocessor_config['downsampling_freq'])
 
         # do some pre-processing on the signals: de-mean, crop_window
         postprocess.prepare_signals(window_method=window_method,

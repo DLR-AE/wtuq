@@ -77,8 +77,12 @@
 
         # damping determination method
         damping_method = DMD
-        svd_rank = 0
+        svd_rank = 20
 
         plotting = True
 
-        MBC_transf = False
+        # enable or disable MBC transformation
+        MBC_transf = True
+	
+        downsampling_flag = False
+        downsampling_freq = 8  # Hz

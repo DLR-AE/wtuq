@@ -3,7 +3,7 @@
     [[uncertainty]]
         base_directory = ./reference_data/hawc2
         run_directory = case_study_1
-        n_CPU = 1
+        n_CPU = 8
 
     [[parameters]]
         [[[flap_stiffness]]]
@@ -94,11 +94,13 @@
 
         # damping determination method
         damping_method = DMD
-        svd_rank = 0
+        svd_rank = 20
 
-        plotting = False
+        plotting = True
 
-        MBC_transf = False
-
+        MBC_transf = True
+		
+        downsampling_flag = True
+        downsampling_freq = 8  # Hz
 
 
