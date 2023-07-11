@@ -1,3 +1,5 @@
+[![DOI](https://zenodo.org/badge/446348726.svg)](https://zenodo.org/badge/latestdoi/446348726)
+
 # wtuq (Wind Turbine Uncertainty Quantification framework)
 
 ## Purpose
