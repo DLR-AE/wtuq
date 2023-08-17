@@ -165,7 +165,7 @@ class Model(un.Model):
         result_dict : dict
             Dictionary with simulation results for rerun
         """
-        logger = logging.getLogger('quexus.uq.model._check_restart_options')
+        logger = logging.getLogger('wtuq.uq.model._check_restart_options')
         logger.info('Checking restart possibility')
         for dir in glob.glob(self.restart_directory):
             if os.path.abspath(dir) == os.path.abspath(self.run_directory):
@@ -202,7 +202,7 @@ class Model(un.Model):
         eval : {list, None}
             QoI evaluations which were available in the uncertainpy result file
         """
-        logger = logging.getLogger('quexus.uq.model._check_restart_h5')
+        logger = logging.getLogger('wtuq.uq.model._check_restart_h5')
         logger.info('Checking restart possibility baded on uncertainpy .h5 file')
 
         try:
@@ -286,7 +286,7 @@ class UQFramework():
         self.run_directory = UQFramework.setup_run_dir(self.config, args)
 
         UQFramework.setup_logger(self.config['framework'], self.run_directory)
-        self.logger = logging.getLogger('quexus.uq')
+        self.logger = logging.getLogger('wtuq.uq')
         self.logger.info('Model set up')
 
         # create distributions and collect in a dict + add modification methods to preprocessor_config
@@ -613,9 +613,9 @@ class UQFramework():
             'debug': logging.DEBUG
         }
 
-        log_file = os.path.join(run_directory, 'uq_results', 'quexus_uncertainpy.log')
+        log_file = os.path.join(run_directory, 'uq_results', 'wtuq_uncertainpy.log')
         print('Logging to {}'.format(log_file))
-        logger = logging.getLogger('quexus.uq')
+        logger = logging.getLogger('wtuq.uq')
         file_handler = logging.FileHandler(log_file)
         file_handler.setFormatter(fmt=logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
         file_handler.setLevel(levels.get(log_level))
