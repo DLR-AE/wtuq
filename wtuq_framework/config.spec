@@ -18,9 +18,20 @@
 
         log_level = option('notset', 'debug', 'info', 'warning', 'error', 'critical', default='debug')
 
+        # UQ method specification
+        uq_method = string(default=pc)
+
         # PCE specifications
         polynomial_order = integer(default=4)
         nr_collocation_nodes = integer(default=None)
+
+        # Monte-Carlo specifications
+        nr_mc_samples = integer(default=10000)
+
+        # Custom UQ methods
+        morris_nr_of_repetitions = integer(default=10)
+        morris_oat_linear_disturbance = boolean(default=True)
+        morris_oat_linear_disturbance_factor = float(default=1E-3)
 
     [[parameters]]
 

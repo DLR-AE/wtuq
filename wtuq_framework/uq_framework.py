@@ -9,6 +9,7 @@ import glob
 from configobj import ConfigObj
 from validate import Validator
 import logging
+import numpy as np
 
 import uncertainpy as un
 import chaospy as cp
@@ -328,20 +329,44 @@ class UQFramework():
         ReferenceRunExit
             If the run_type=reference or run_type=test, the framework exits after one iteration
         """
+        if self.config['framework']['uncertainty']['uq_method'] == 'morris':
+            custom_uq_method = morris_screening
+            method = 'custom'
+        elif self.config['framework']['uncertainty']['uq_method'] == 'oat':
+            custom_uq_method = oat_screening
+            method = 'custom'
+        elif self.config['framework']['uncertainty']['uq_method'] == 'pc' or \
+             self.config['framework']['uncertainty']['uq_method'] == 'mc':
+            custom_uq_method = None
+            method = self.config['framework']['uncertainty']['uq_method']
+        else:
+            raise ValueError('UQ method chosen in the config file is not known')
+
         # set up UQ
         uq = un.UncertaintyQuantification(model=model, parameters=self.parameters,
                                           CPUs=get_CPU(self.config['framework']['uncertainty']['n_CPU'],
-                                                       self.config['framework']['uncertainty']['run_type']))
+                                                       self.config['framework']['uncertainty']['run_type']),
+                                          custom_uncertainty_quantification=custom_uq_method)
         self.logger.info('UQ set up')
 
         # run it
         try:
-            result, U_hat, distribution = uq.quantify(data_folder=os.path.join(self.run_directory, 'uq_results'),
+            result, U_hat, distribution = uq.quantify(method=method,
+                                                      data_folder=os.path.join(self.run_directory, 'uq_results'),
                                                       figure_folder=os.path.join(self.run_directory, 'uq_results'),
                                                       polynomial_order=self.config['framework']['uncertainty'][
                                                           'polynomial_order'],
                                                       nr_collocation_nodes=self.config['framework']['uncertainty'][
-                                                          'nr_collocation_nodes'])
+                                                          'nr_collocation_nodes'],
+                                                      nr_mc_samples=self.config['framework']['uncertainty'][
+                                                          'nr_mc_samples'],
+                                                      morris_nr_of_repetitions=self.config['framework']['uncertainty'][
+                                                          'morris_nr_of_repetitions'],
+                                                      morris_oat_linear_disturbance =self.config['framework']['uncertainty'][
+                                                          'morris_oat_linear_disturbance'],
+                                                      morris_oat_linear_disturbance_factor=self.config['framework']['uncertainty'][
+                                                          'morris_oat_linear_disturbance_factor'])
+
             # todo: U_hat and distribution are currently not saved, so a comparison between different runs of the
             # framework is not possible. Two options for future: 1) Save these objects, 2) move enable comparison of
             # different runs within uncertainpy, such that these objects do not have to be saved, but can be recomputed.
@@ -636,3 +661,170 @@ class UQFramework():
         logger.addHandler(file_handler)
 
         logger.info('Starting uncertainty analysis')
+
+
+def morris_screening(self, **kwargs):
+    """
+    http://www.andreasaltelli.eu/file/repository/Screening_CPC_2011.pdf
+
+    Morris = Local derivative at multiple points
+        -> If the local derivatives are large -> large mean value -> large influence of the parameter
+        -> If the local derivatives change a lot -> large std -> non-linear fie or interaction with other parameters
+    """
+    from scipy.stats import qmc
+    import numpy as np
+    import matplotlib.pyplot as plt
+
+    nr_of_repetitions = kwargs['morris_nr_of_repetitions']  # = Number of starting conditions from which OAT is done
+    all_distributions = self.create_distribution()
+    sample_means = [distr.mom([1])[0] for distr in all_distributions]
+
+    uncertain_params = self.convert_uncertain_parameters()
+    nr_params = len(uncertain_params)
+    sampler = qmc.Sobol(d=nr_params)
+    sample = sampler.random(n=nr_of_repetitions*2)
+    # -> array with :nr_of_repetitions of the reference coordinates and nr_of_repetitions: values as disturbance
+
+    # if linear disturbances are preferred, the nr_of_repetitions: samples are modified
+    if kwargs['morris_linear_disturbance'] is True:
+        sample[nr_of_repetitions:] = sample[:nr_of_repetitions] + \
+                                     kwargs['morris_linear_disturbance_factor'] * sample[nr_of_repetitions:]
+
+    # build the normalized_nodes array, which will has following format:
+    # row 1: unmodified reference coordinates 1
+    # row 2: disturbed reference coordinate 1, unmodified reference coordinates 1 for all other parameters
+    # row 3: disturbed reference coordinate 2, unmodified reference coordinates 1 for all other parameters
+    # ...
+    # row nr_parameters+1: unmodified reference coordinates 2
+    # row nr_parameters+2: disturbed reference coordinate 1, unmodified reference coordinates 2 for all other parameters
+    # ...
+    normalized_nodes = np.repeat(sample[:nr_of_repetitions], nr_params+1, axis=0)
+    for repetition_idx, b_values in enumerate(sample[nr_of_repetitions:, :]):
+        np.fill_diagonal(normalized_nodes[repetition_idx * (nr_params+1) + 1:
+                                          (repetition_idx+1) * (nr_params+1), :], b_values)
+
+    # scale the nodes with the input distributions
+    normalized_nodes = normalized_nodes.T
+    nodes = np.zeros(normalized_nodes.shape)
+    distr_ranges = [[distr.lower[0], distr.upper[0]] for distr in all_distributions]
+    for idx, distr_range in enumerate(distr_ranges):
+        nodes[idx, :] = distr_range[0] + (distr_range[1]-distr_range[0]) * normalized_nodes[idx, :]
+
+    # run the simulations
+    data = self.runmodel.run(nodes, uncertain_params)
+
+    for feature in data.data:
+
+        """
+        # masking 
+        # check which iterations are not none or do not have any nan values in the qoi
+        # mask the evaluations
+        # mask the nodes
+        # mask the nr_of_repetitions
+        not_nan_mask = []
+        for i_eval, evaluation in enumerate(data.data[feature].evaluations):
+            if np.any(np.isnan(evaluation)) == False:
+                not_nan_mask.append(i_eval)
+
+        if not_nan_mask == []:
+            continue"""
+
+        evaluations = np.array(data.data[feature].evaluations[not_nan_mask])
+        if evaluations.ndim > 1:
+            nr_of_qoi = evaluations.shape[1]
+        else:
+            nr_of_qoi = 1
+        ee = np.zeros((nr_params, nr_of_qoi, nr_of_repetitions))
+
+        for repetition in range(nr_of_repetitions):
+            # evaluation difference between disturbed and reference computation
+            y_delta = evaluations[repetition * (nr_params+1) + 1: (repetition+1) * (nr_params+1)] - evaluations[repetition * (nr_params+1)]
+            # normalized input disturbance
+            x_delta = normalized_nodes[:, repetition * (nr_params+1) + 1: (repetition+1) * (nr_params+1)] - normalized_nodes[:, [repetition * (nr_params+1)]]
+            if nr_of_qoi > 1:
+                ee[:, :, repetition] = (y_delta / x_delta.sum(axis=0).reshape((y_delta.shape[0], 1))).reshape((nr_params, nr_of_qoi))
+            else:
+                ee[:, :, repetition] = (y_delta / x_delta.sum(axis=0)).reshape((nr_params, nr_of_qoi))
+
+        data.data[feature].ee = ee
+        data.data[feature].ee_mean = np.mean(np.abs(ee), axis=-1)
+        data.data[feature].ee_std = np.std(np.abs(ee), axis=-1)
+
+
+    """fig, ax = plt.subplots()
+
+    for idx in range(nr_params):
+        print('MEAN {}: {}'.format(idx, data.data[data.model_name].ee_mean[idx]))
+        print('STD {}: {}'.format(idx, data.data[data.model_name].ee_std[idx]))
+
+        if idx < 10:
+            marker = 'o'
+        else:
+            marker = '+'
+        ax.plot(data.data[data.model_name].ee_mean[idx], data.data[data.model_name].ee_std[idx],
+                marker=marker, label='Uncertain param #{}'.format(idx))
+
+    ax.set_xlabel('Mean')
+    ax.set_ylabel('Standard Dev.')
+    ax.grid()
+    ax.legend()
+    plt.show()"""
+
+
+    return data, None, None
+
+
+def oat_screening(self, **kwargs):
+    """
+    Hübler:
+    "The general concept is to vary one parameter while freezing all others. In most cases, only two values
+    (maximum and minimum) are tested. Non-linear effects and interactions between inputs are neglected.
+    A sensitivity index for the OAT method for the kth input factor can be defined as the (symmetric) derivative
+    with respect to the kth input factor"
+    """
+    logger = logging.getLogger('wtuq.uq')
+
+    uncertain_params = self.convert_uncertain_parameters()
+    nr_params = len(uncertain_params)
+    nr_samples_per_param = 2  # lower and upper
+    all_distributions = self.create_distribution()
+    sample_means = [distr.mom([1])[0] for distr in all_distributions]
+
+    nodes = np.tile(np.array(sample_means).reshape(len(sample_means), 1), nr_params*nr_samples_per_param)
+    nodes_mean = np.copy(nodes)
+
+    for idx_param in range(nr_params):
+        if kwargs['morris_oat_linear_disturbance'] is True:
+            logger.info('The uncertain parameters are disturbed by {} x Distribution.lower and '
+                        '{} x Distribution.upper. This makes sure only the linear effect of the uncertain parameter '
+                        'is computed.'.format(kwargs['morris_linear_disturbance_factor'],
+                                              kwargs['morris_linear_disturbance_factor']))
+            nodes[idx_param, idx_param*nr_samples_per_param] = all_distributions[idx_param].lower[0] * kwargs['morris_oat_linear_disturbance_factor']
+            nodes[idx_param, idx_param * nr_samples_per_param + 1] = all_distributions[idx_param].upper[0] * kwargs['morris_oat_linear_disturbance_factor']
+        else:
+            logger.info('The uncertain parameters are disturbed by -Distribution.lower and +Distribution.upper. '
+                        'This could give false results for nonlinear functions.')
+            nodes[idx_param, idx_param*nr_samples_per_param] = all_distributions[idx_param].lower[0]
+            nodes[idx_param, idx_param * nr_samples_per_param + 1] = all_distributions[idx_param].upper[0]
+
+    deltas = np.sum(nodes - nodes_mean, axis=0)
+
+    data = self.runmodel.run(nodes, uncertain_params)
+
+    for feature in data.data:
+        s_oat = [(data.data[feature].evaluations[i] - data.data[feature].evaluations[i+1]) / (deltas[i] - deltas[i+1])
+                 for i in range(0, nr_params*nr_samples_per_param, 2)]
+
+        # if both low and high were nans, the s_oat will be nan instead of array with nans
+        nr_campbell_diagram_points = len(data.data[feature].time)
+        for ii in range(len(s_oat)):
+            if np.any(np.isnan(s_oat[ii])) == True:
+                print('These s_oat result are assumed to be nan: ', s_oat[ii])
+                s_oat[ii] = np.ones(nr_campbell_diagram_points) * np.nan
+
+        data.data[feature].nodes = nodes
+        data.data[feature].s_oat = s_oat
+        data.data[feature].s_oat_mean = np.mean(np.array(s_oat), axis=1)
+        data.data[feature].s_oat_max = np.max(np.array(s_oat), axis=1)
+
+    return data, None, None
