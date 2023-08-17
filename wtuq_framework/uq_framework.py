@@ -314,7 +314,7 @@ class UQFramework():
                 'restart_h5': self.config['framework']['uncertainty']['restart_h5'],
                 'run_type': self.config['framework']['uncertainty']['run_type']}
 
-    def main(self, model):
+    def main(self, model, features=None, return_postprocessor=False):
         """
         Main function for the sensitivity analysis. Runs uncertainpy uncertainty quantification for the model
         according to uncertainty settings given in the config
@@ -343,7 +343,7 @@ class UQFramework():
             raise ValueError('UQ method chosen in the config file is not known')
 
         # set up UQ
-        uq = un.UncertaintyQuantification(model=model, parameters=self.parameters,
+        uq = un.UncertaintyQuantification(model=model, parameters=self.parameters, features=features,
                                           CPUs=get_CPU(self.config['framework']['uncertainty']['n_CPU'],
                                                        self.config['framework']['uncertainty']['run_type']),
                                           custom_uncertainty_quantification=custom_uq_method)
@@ -381,6 +381,11 @@ class UQFramework():
             uq_plots.surrogate_model_verification()
             uq_plots.plot_surface(U_hat, distribution, model_name=result.model_name)
             uq_plots.plot_distributions(U_hat, distribution, model_name=result.model_name)
+
+            print('Successfully finished')
+            if return_postprocessor:
+                return uq_plots
+
         except ReferenceRunExit:
             # makes the framework exit after the first iteration
             print("Reference or test run completed, forced exit from uncertainty framework")
@@ -389,8 +394,6 @@ class UQFramework():
         finally:
             # this is the right place for code that will be executed in any case (e.g. writing a summary file)
             pass
-
-        print('Successfully finished')
 
     @staticmethod
     def convert_parameters(param_definition):
