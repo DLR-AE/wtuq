@@ -123,14 +123,15 @@ class Model(un.Model):
         """
         uncertain_params_dict = dict()
         for param, value in self.input_parameters.items():
-            if 'fixed_distr' in param:
-                uncertain_param_prefix = param.partition("fixed_distr")[0][:-1]         # f.ex. mass_distribution
-            elif 'cp0' in param:
-                uncertain_param_prefix = param.partition("cp0")[0][:-1]                 # f.ex. mass_distribution
-            uncertain_param_suffix = param.replace(uncertain_param_prefix + '_', '')    # f.ex. cp01_x
-            if uncertain_param_prefix not in uncertain_params_dict:
-                uncertain_params_dict[uncertain_param_prefix] = dict()
-            uncertain_params_dict[uncertain_param_prefix][uncertain_param_suffix] = value
+            if 'scalar_property' not in param:
+                if 'fixed_distr' in param:
+                    uncertain_param_prefix = param.partition("fixed_distr")[0][:-1]         # f.ex. mass_distribution
+                elif 'cp0' in param:
+                    uncertain_param_prefix = param.partition("cp0")[0][:-1]                 # f.ex. mass_distribution
+                uncertain_param_suffix = param.replace(uncertain_param_prefix + '_', '')    # f.ex. cp01_x
+                if uncertain_param_prefix not in uncertain_params_dict:
+                    uncertain_params_dict[uncertain_param_prefix] = dict()
+                uncertain_params_dict[uncertain_param_prefix][uncertain_param_suffix] = value
 
         for uncertain_param_prefix in uncertain_params_dict:
             if 'fixed_distr' in uncertain_params_dict[uncertain_param_prefix]:
@@ -395,69 +396,82 @@ class UQFramework():
         modification_method = dict()
         for uncertain_parameter in param_definition.keys():
             modification_method[uncertain_parameter] = param_definition[uncertain_parameter]['method']
-            if param_definition[uncertain_parameter]['radial_distribution'] == 'fixed':
-                parameter_name = uncertain_parameter + '_fixed_distr'
+
+            if param_definition[uncertain_parameter]['radial_distribution'] == 'none':
+
+                parameter_name = uncertain_parameter + '_scalar_property'
+                mini = float(param_definition[uncertain_parameter]['min'])
+                maxi = float(param_definition[uncertain_parameter]['max'])
                 if param_definition[uncertain_parameter]['param_distribution'] == 'uniform':
-                    parameters[parameter_name] = cp.Uniform(0, 1)
+                    parameters[parameter_name] = cp.Uniform(mini, maxi)
                 elif param_definition[uncertain_parameter]['param_distribution'] == 'normal':
-                    parameters[parameter_name] = cp.Normal(mu=0.5, sigma=0.5)
-                else:
-                    raise ValueError('Only <uniform> or <normal> parameter distributions are allowed')
-            for control_point in param_definition[uncertain_parameter]:
-                if control_point[:2] != 'cp':
-                    continue
-                for values in param_definition[uncertain_parameter][control_point]:
-                    mini = None
-                    maxi = None
-                    fixi = None
-                    if param_definition[uncertain_parameter][control_point][values].keys() == ['max', 'min'] or\
-                       param_definition[uncertain_parameter][control_point][values].keys() == ['min', 'max'] or\
-                       param_definition[uncertain_parameter][control_point][values].keys() == ['fix']:
+                    parameters[parameter_name] = cp.Normal(mu=(mini + maxi)/2, sigma=maxi/2-mini/2)
 
-                        for value_type in param_definition[uncertain_parameter][control_point][values]:
-                            if value_type == 'min':
-                                mini = float(param_definition[uncertain_parameter][control_point][values][value_type])
-                            if value_type == 'max':
-                                maxi = float(param_definition[uncertain_parameter][control_point][values][value_type])
-                            if value_type == 'fix':
-                                fixi = float(param_definition[uncertain_parameter][control_point][values][value_type])
+            else:
+
+                if param_definition[uncertain_parameter]['radial_distribution'] == 'fixed':
+                    parameter_name = uncertain_parameter + '_fixed_distr'
+                    if param_definition[uncertain_parameter]['param_distribution'] == 'uniform':
+                        parameters[parameter_name] = cp.Uniform(0, 1)
+                    elif param_definition[uncertain_parameter]['param_distribution'] == 'normal':
+                        parameters[parameter_name] = cp.Normal(mu=0.5, sigma=0.5)
                     else:
-                        raise ValueError(control_point + '_' + values
-                                         + ' not specified correctly, options are: min, max, fix')
+                        raise ValueError('Only <uniform> or <normal> parameter distributions are allowed')
+                for control_point in param_definition[uncertain_parameter]:
+                    if control_point[:2] != 'cp':
+                        continue
+                    for values in param_definition[uncertain_parameter][control_point]:
+                        mini = None
+                        maxi = None
+                        fixi = None
+                        if param_definition[uncertain_parameter][control_point][values].keys() == ['max', 'min'] or\
+                           param_definition[uncertain_parameter][control_point][values].keys() == ['min', 'max'] or\
+                           param_definition[uncertain_parameter][control_point][values].keys() == ['fix']:
 
-                    if param_definition[uncertain_parameter]['radial_distribution'] == 'spline':
-                        parameter_name = uncertain_parameter + '_' + control_point + '_' + values[0]
-                        if mini is not None and maxi is not None:
-                            if param_definition[uncertain_parameter]['param_distribution'] == 'uniform':
-                                parameters[parameter_name] = cp.Uniform(mini, maxi)
-                            elif param_definition[uncertain_parameter]['param_distribution'] == 'normal':
-                                parameters[parameter_name] = cp.Normal(mu=(mini+maxi)/2, sigma=maxi/2-mini/2)
+                            for value_type in param_definition[uncertain_parameter][control_point][values]:
+                                if value_type == 'min':
+                                    mini = float(param_definition[uncertain_parameter][control_point][values][value_type])
+                                if value_type == 'max':
+                                    maxi = float(param_definition[uncertain_parameter][control_point][values][value_type])
+                                if value_type == 'fix':
+                                    fixi = float(param_definition[uncertain_parameter][control_point][values][value_type])
+                        else:
+                            raise ValueError(control_point + '_' + values
+                                             + ' not specified correctly, options are: min, max, fix')
+
+                        if param_definition[uncertain_parameter]['radial_distribution'] == 'spline':
+                            parameter_name = uncertain_parameter + '_' + control_point + '_' + values[0]
+                            if mini is not None and maxi is not None:
+                                if param_definition[uncertain_parameter]['param_distribution'] == 'uniform':
+                                    parameters[parameter_name] = cp.Uniform(mini, maxi)
+                                elif param_definition[uncertain_parameter]['param_distribution'] == 'normal':
+                                    parameters[parameter_name] = cp.Normal(mu=(mini+maxi)/2, sigma=maxi/2-mini/2)
+                                else:
+                                    raise ValueError('Only <uniform> or <normal> parameter distributions are allowed')
+
+                            elif (mini is not None) and maxi is None:
+                                raise ValueError('Minimum value min given but not maximal value, specify max for '
+                                                 + control_point + '_' + values)
+                            elif (maxi is not None) and mini is None:
+                                raise ValueError('Maximum value max given but not minimal value, specify min for '
+                                                 + control_point + '_' + values)
                             else:
-                                raise ValueError('Only <uniform> or <normal> parameter distributions are allowed')
-
-                        elif (mini is not None) and maxi is None:
-                            raise ValueError('Minimum value min given but not maximal value, specify max for '
-                                             + control_point + '_' + values)
-                        elif (maxi is not None) and mini is None:
-                            raise ValueError('Maximum value max given but not minimal value, specify min for '
-                                             + control_point + '_' + values)
-                        else:
-                            parameters[parameter_name] = fixi
-                    elif param_definition[uncertain_parameter]['radial_distribution'] == 'fixed':
-                        if mini is not None and maxi is not None:
-                            parameter_name = uncertain_parameter + '_' + control_point + '_' + values[0] + '_min'
-                            parameters[parameter_name] = mini
-                            parameter_name = uncertain_parameter + '_' + control_point + '_' + values[0] + '_max'
-                            parameters[parameter_name] = maxi
-                        elif (mini is not None) and maxi is None:
-                            raise ValueError('Minimum value min given but not maximal value, specify max for '
-                                             + control_point + '_' + values)
-                        elif (maxi is not None) and mini is None:
-                            raise ValueError('Maximum value max given but not minimal value, specify min for '
-                                             + control_point + '_' + values)
-                        else:
-                            parameter_name = uncertain_parameter + '_' + control_point + '_' + values[0] + '_fix'
-                            parameters[parameter_name] = fixi
+                                parameters[parameter_name] = fixi
+                        elif param_definition[uncertain_parameter]['radial_distribution'] == 'fixed':
+                            if mini is not None and maxi is not None:
+                                parameter_name = uncertain_parameter + '_' + control_point + '_' + values[0] + '_min'
+                                parameters[parameter_name] = mini
+                                parameter_name = uncertain_parameter + '_' + control_point + '_' + values[0] + '_max'
+                                parameters[parameter_name] = maxi
+                            elif (mini is not None) and maxi is None:
+                                raise ValueError('Minimum value min given but not maximal value, specify max for '
+                                                 + control_point + '_' + values)
+                            elif (maxi is not None) and mini is None:
+                                raise ValueError('Maximum value max given but not minimal value, specify min for '
+                                                 + control_point + '_' + values)
+                            else:
+                                parameter_name = uncertain_parameter + '_' + control_point + '_' + values[0] + '_fix'
+                                parameters[parameter_name] = fixi
 
         parameters = un.Parameters(parameters=parameters)
         return parameters, modification_method

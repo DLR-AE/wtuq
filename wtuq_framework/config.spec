@@ -36,6 +36,8 @@
         # if the radial_distribution==fixed
         #   - control points are used to build a linear interpolation. A minimal and maximal distribution have to be made.
         #     The uncertain parameter determines where the distribution lays between the max. and min. distribution.
+        # if the radial_distribution==none
+        #   - no radial distribution, uncertain parameter is a single, scalar property
         #
         # if param_distribution==uniform
         #   - min and max control points describe the outer bounds of the uniform distribution
@@ -87,7 +89,7 @@
 
         [[[__many__]]]
             method  = option('multiplicative', 'additive', default='multiplicative')
-            radial_distribution = option('spline', 'fixed', default='spline')
+            radial_distribution = option('spline', 'fixed', 'none', default='spline')
             param_distribution = option('uniform', 'normal', default='uniform')
             [[[[__many__]]]]
                 # two sections are needed for the dofs of each control point
