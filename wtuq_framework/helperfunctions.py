@@ -85,7 +85,7 @@ def load_dict_json(file):
 def save_dict_h5py(filename, dic):
     """
     Save data dictionary with h5py package. Dictionary can be nested.
-    Allowed dictionary value types: np.ndarray, np.int64, np.float64, str, bytes
+    Allowed dictionary value types: np.ndarray, np.int64, np.float64, float, str, bytes
 
     Parameters
     ----------
@@ -125,10 +125,14 @@ def recursively_save_dict_contents_to_group(h5file, path, dic):
     save_dict_h5py
     """
     for key, item in dic.items():
-        if isinstance(item, (np.ndarray, np.int64, np.float64, str, bytes)):
+        if isinstance(item, (np.ndarray, np.int64, int, np.float64, float, str, bytes)):
             h5file[path + key] = item
         elif isinstance(item, list):
-            h5file[path + key] = np.array(item)
+            # assumed that all elements in array are the same type
+            if isinstance(item[0], (np.ndarray, np.int64, int, np.float64, float)):
+                h5file[path + key] = np.array(item)
+            elif isinstance(item[0], str):
+                h5file[path + key] = [n.encode("ascii", "ignore") for n in item]
         elif isinstance(item, dict):
             recursively_save_dict_contents_to_group(h5file, path + key + '/', item)
         else:
@@ -176,7 +180,16 @@ def recursively_load_dict_contents_from_group(h5file, path):
     ans = {}
     for key, item in h5file[path].items():
         if isinstance(item, h5py._hl.dataset.Dataset):
-            ans[key] = item[()]
+            if isinstance(item[()], bytes):
+                ans[key] = item[()].decode("ascii", "ignore")
+            elif isinstance(item[()], (np.int64, np.int32, int, np.float64, np.float64, float, str)):
+                ans[key] = item[()]
+            elif isinstance(item[()], np.ndarray):
+                if isinstance(item[()][0], bytes):
+                    ans[key] = [some_string.decode("ascii", "ignore") for some_string in item[()]]
+                else:
+                    ans[key] = item[()]
+
         elif isinstance(item, h5py._hl.group.Group):
             ans[key] = recursively_load_dict_contents_from_group(h5file, path + key + '/')
     return ans
