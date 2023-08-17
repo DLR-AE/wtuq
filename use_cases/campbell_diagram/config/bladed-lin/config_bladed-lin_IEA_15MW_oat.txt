@@ -1,0 +1,240 @@
+
+[framework]
+    [[uncertainty]]
+        base_directory = Z:\projects\Torque2024
+        run_directory = IEA_15MW_oat
+        n_CPU = 1
+
+        uq_method = oat
+        #morris_nr_of_repetitions = 1
+        morris_oat_linear_disturbance = False
+        morris_oat_linear_disturbance_factor = 1E-3
+
+    [[parameters]]
+        [[[nacelle_mass]]]
+            radial_distribution = none
+            param_distribution = uniform
+            min = -0.1
+            max = 0.1
+        [[[nacelle_cog_vertical]]]
+            radial_distribution = none
+            param_distribution = uniform
+            min = -0.1
+            max = 0.1
+        [[[nacelle_cog_horizontal]]]
+            radial_distribution = none
+            param_distribution = uniform
+            min = -0.1
+            max = 0.1
+        [[[nacelle_yaw_inertia]]]
+            radial_distribution = none
+            param_distribution = uniform
+            min = -0.1
+            max = 0.1
+        [[[nacelle_nodding_inertia]]]
+            radial_distribution = none
+            param_distribution = uniform
+            min = -0.1
+            max = 0.1
+        [[[nacelle_rolling_inertia]]]
+            radial_distribution = none
+            param_distribution = uniform
+            min = -0.1
+            max = 0.1
+
+        [[[cone_angle]]]
+            radial_distribution = none
+            param_distribution = uniform
+            min = -0.1
+            max = 0.1
+        [[[LSS_stiffness]]]
+            radial_distribution = none
+            param_distribution = uniform
+            min = -0.1
+            max = 0.1
+        [[[LSS_damping]]]
+            radial_distribution = none
+            param_distribution = uniform
+            min = -0.1
+            max = 0.1
+        [[[tower_bending_stiffness]]]
+            radial_distribution = none
+            param_distribution = uniform
+            min = -0.1
+            max = 0.1
+        [[[tower_torsional_stiffness]]]
+            radial_distribution = none
+            param_distribution = uniform
+            min = -0.1
+            max = 0.1
+        [[[tower_shear_stiffness]]]
+            radial_distribution = none
+            param_distribution = uniform
+            min = -0.1
+            max = 0.1
+        [[[tower_mass]]]
+            radial_distribution = none
+            param_distribution = uniform
+            min = -0.1
+            max = 0.1
+        [[[separation_time_constant]]]
+            radial_distribution = none
+            param_distribution = uniform
+            min = -0.1
+            max = 0.1
+        [[[pressure_lag_time_constant]]]
+            radial_distribution = none
+            param_distribution = uniform
+            min = -0.1
+            max = 0.1
+        [[[vortex_lift_time_constant]]]
+            radial_distribution = none
+            param_distribution = uniform
+            min = -0.1
+            max = 0.1
+
+        [[[blade_damping_1]]]
+            radial_distribution = none
+            param_distribution = uniform
+            min = -0.1
+            max = 0.1
+        [[[blade_damping_2]]]
+            radial_distribution = none
+            param_distribution = uniform
+            min = -0.1
+            max = 0.1
+        [[[blade_damping_3]]]
+            radial_distribution = none
+            param_distribution = uniform
+            min = -0.1
+            max = 0.1
+        [[[blade_damping_4]]]
+            radial_distribution = none
+            param_distribution = uniform
+            min = -0.1
+            max = 0.1
+
+        [[[tower_damping_1]]]
+            radial_distribution = none
+            param_distribution = uniform
+            min = -0.1
+            max = 0.1
+        [[[tower_damping_2]]]
+            radial_distribution = none
+            param_distribution = uniform
+            min = -0.1
+            max = 0.1
+
+        #[[[polar_cl]]]
+        #    radial_distribution = none
+        #    param_distribution = uniform
+        #    min = -0.26
+        #    max = 0.26
+        #[[[polar_alpha_tes]]]
+        #    radial_distribution = none
+        #    param_distribution = uniform
+        #    min = -0.2
+        #    max = 0.2
+        #[[[polar_alpha_max]]]
+        #    radial_distribution = none
+        #    param_distribution = uniform
+        #    min = -0.08
+        #    max = 0.08
+        #[[[polar_alpha_sr]]]
+        #    radial_distribution = none
+        #    param_distribution = uniform
+        #    min = -0.15
+        #    max = 0.15
+
+        [[[polar_clalpha]]]
+            radial_distribution = none
+            param_distribution = uniform
+            min = -0.1
+            max = 0.1
+        [[[polar_alpha_max]]]
+            radial_distribution = none
+            param_distribution = uniform
+            min = -0.1
+            max = 0.1
+        [[[polar_cd0]]]
+            radial_distribution = none
+            param_distribution = uniform
+            min = -0.1
+            max = 0.1
+
+        [[[blade_chord_root]]]
+            radial_distribution = none
+            param_distribution = uniform
+            min = -0.1
+            max = 0.1
+        [[[blade_chord_tip]]]
+            radial_distribution = none
+            param_distribution = uniform
+            min = -0.1
+            max = 0.1
+        [[[blade_twist]]]
+            radial_distribution = none
+            param_distribution = uniform
+            min = -0.1
+            max = 0.1
+        [[[blade_na_x]]]
+            radial_distribution = none
+            param_distribution = uniform
+            min = -0.1
+            max = 0.1
+        [[[blade_na_y]]]
+            radial_distribution = none
+            param_distribution = uniform
+            min = -0.1
+            max = 0.1
+        [[[blade_flap_stiffness]]]
+            radial_distribution = none
+            param_distribution = uniform
+            min = -0.1
+            max = 0.1
+        [[[blade_edge_stiffness]]]
+            radial_distribution = none
+            param_distribution = uniform
+            min = -0.1
+            max = 0.1
+        [[[blade_mass]]]
+            radial_distribution = none
+            param_distribution = uniform
+            min = -0.1
+            max = 0.1
+        #[[[blade_radial_cog]]]
+        #    radial_distribution = none
+        #    param_distribution = uniform
+        #    min = -0.1
+        #    max = 0.1
+        [[[blade_pa_orientation]]]
+            radial_distribution = none
+            param_distribution = uniform
+            min = -0.1
+            max = 0.1
+        [[[blade_cog_x]]]
+            radial_distribution = none
+            param_distribution = uniform
+            min = -0.01
+            max = 0.01
+        [[[blade_cog_y]]]
+            radial_distribution = none
+            param_distribution = uniform
+            min = -0.1
+            max = 0.1
+        [[[blade_sc_x]]]
+            radial_distribution = none
+            param_distribution = uniform
+            min = -0.01
+            max = 0.01
+        [[[blade_sc_y]]]
+            radial_distribution = none
+            param_distribution = uniform
+            min = -0.1
+            max = 0.1
+
+
+[use_case]
+    [[tool]]
+        tool_name = bladed-lin
+        template_project = 'C:\Users\verd_he\projects\Torque2024\reference_model\15MW_NREL_DNV_v1.1_onshore_tower_26Sections.prj'
