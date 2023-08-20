@@ -45,7 +45,7 @@ class BladedModel(SimulationModel):
         Prefix of output files
     """
     def __init__(self, run_directory, config):
-        self.bl_model = BladedAPIModel(os.path.abspath(config['template_project']))
+        self.bl_model = BladedAPIModel(os.path.abspath(config['template_project']), run_directory)
         self.bl_model.suppress_logs()
         self.bl_st = dict()
         self.run_directory = run_directory

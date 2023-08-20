@@ -10,7 +10,7 @@ from wtuq_framework.helperfunctions import save_dict_json, load_dict_json, save_
     get_CPU
 
 from wtuq_framework.uq_framework import Model, UQFramework, ReferenceRunExit
-from extra_uq_results_analysis import result_analysis_OAT, campbell_diagram_with_uncertainty_bands, campbell_diagram_from_OAT
+from extra_uq_results_analysis import result_analysis_OAT, result_analysis_EE, campbell_diagram_with_uncertainty_bands, campbell_diagram_from_OAT
 
 
 class CampbellDiagramModel(Model):
@@ -94,22 +94,21 @@ class CampbellDiagramModel(Model):
         #                                   'Rotor 2nd edgewise backward whirl': [4.60805, 4.60812, 4.6081, 4.60801, 4.60793, 4.60788],
         #                                   'Rotor 2nd edgewise forward whirl': [5.21335, 5.21341, 5.21339, 5.21326, 5.21313, 5.213]}
 
-        # IEA 15 MW fast reference Campbell data
+        # IEA 15 MW reference Campbell data (51 Sections)
         #desired_modes = ['Rotor 1st edgewise backward whirl', 'Rotor 1st edgewise forward whirl',
         #                 'Rotor 2nd edgewise backward whirl', 'Rotor 2nd edgewise forward whirl']
-        #reference_frequency_progression = {'Rotor 1st edgewise backward whirl': [0.585844, 0.575, 0.575109, 0.573639, 0.571359, 0.568769],
-        #                                   'Rotor 1st edgewise forward whirl': [0.818694, 0.826879, 0.827797, 0.826285, 0.824388, 0.821782],
-        #                                   'Rotor 2nd edgewise backward whirl': [1.94887, 1.95974, 1.94414, 1.93554, 1.92995, 1.92649],
-        #                                   'Rotor 2nd edgewise forward whirl': [2.42276, 2.40009, 2.31054, 2.27368, 2.25548, 2.24478]}
+        #reference_frequency_progression = {'Rotor 1st edgewise backward whirl': [0.576163, 0.569978, 0.570617, 0.571181, 0.56783, 0.56467],
+        #                                   'Rotor 1st edgewise forward whirl': [0.810334, 0.821295, 0.822507, 0.819621, 0.815166, 0.811032],
+        #                                   'Rotor 2nd edgewise backward whirl': [2.0494, 2.0184, 2.0423, 2.0542, 2.0583, 2.0614],
+        #                                   'Rotor 2nd edgewise forward whirl': [2.24289, 2.25599, 2.24389, 2.21513, 2.19358, 2.17557]}
 
-        # IEA 15 MW reference Campbell data
+        # IEA 15 MW reference Campbell data (26 Sections)
         desired_modes = ['Rotor 1st edgewise backward whirl', 'Rotor 1st edgewise forward whirl',
                          'Rotor 2nd edgewise backward whirl', 'Rotor 2nd edgewise forward whirl']
-        reference_frequency_progression = {'Rotor 1st edgewise backward whirl': [0.576163, 0.569978, 0.570617, 0.571181, 0.56783, 0.56467],
-                                           'Rotor 1st edgewise forward whirl': [0.810334, 0.821295, 0.822507, 0.819621, 0.815166, 0.811032],
-                                           'Rotor 2nd edgewise backward whirl': [2.0494, 2.0184, 2.0423, 2.0542, 2.0583, 2.0614],
-                                           'Rotor 2nd edgewise forward whirl': [2.24289, 2.25599, 2.24389, 2.21513, 2.19358, 2.17557]}
-
+        reference_frequency_progression = {'Rotor 1st edgewise backward whirl': [0.579, 0.572, 0.572, 0.570, 0.569, 0.563],
+                                           'Rotor 1st edgewise forward whirl': [0.813, 0.823, 0.824, 0.822, 0.817, 0.816],
+                                           'Rotor 2nd edgewise backward whirl': [2.053, 2.034, 2.050, 2.054, 2.061, 2.058],
+                                           'Rotor 2nd edgewise forward whirl': [2.257, 2.265, 2.253, 2.235, 2.208, 2.205]}
 
         reference_frequency_progression_deltas = dict()
         for mode in reference_frequency_progression:
@@ -119,6 +118,8 @@ class CampbellDiagramModel(Model):
         nr_ws = result_dict['Frequency'].shape[0]
 
         subset_result_dict = dict()
+        subset_result_dict['postprocessing_successful'] = []
+        subset_result_dict['postprocessing_failed'] = []
         subset_result_dict['mode_names'] = []
         subset_result_dict['damping'] = np.zeros((nr_ws, len(desired_modes)))
         subset_result_dict['frequency'] = np.zeros((nr_ws, len(desired_modes)))
@@ -126,6 +127,9 @@ class CampbellDiagramModel(Model):
             matching_mode_name_indices = np.where(np.array(available_mode_names) == desired_mode_name)[0]
             if len(matching_mode_name_indices) == 0:
                 print('{} is not available in the result_dict, this mode is no longer used'.format(desired_mode_name))
+                subset_result_dict['postprocessing_failed'].append(desired_mode_name)
+                subset_result_dict['frequency'][:, mode_ii] = np.ones(nr_ws) * -999
+                subset_result_dict['damping'][:, mode_ii] = np.ones(nr_ws) * -999
                 continue
             elif len(matching_mode_name_indices) == 1:
                 start_col = matching_mode_name_indices[0]
@@ -164,6 +168,7 @@ class CampbellDiagramModel(Model):
                         current_col = (absolute_freq_diff).argmin()
 
                         if absolute_freq_diff[current_col] > 0.1:
+                            # stop this has to be updated see below
                             print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
                             print('Mode tracking not precise enough for mode: {}'.format(desired_mode_name))
                             print('This iteration is skipped')
@@ -180,12 +185,33 @@ class CampbellDiagramModel(Model):
                     subset_result_dict['damping'][ws_ii, mode_ii] = result_dict['Damping'][ws_ii, current_col]
 
             else:
-                subset_result_dict['frequency'][:, mode_ii] = result_dict['Frequency'][:, start_col]
-                subset_result_dict['damping'][:, mode_ii] = result_dict['Damping'][:, start_col]
+                # last check for mode jumps -> frequency can not jump more than 0.1 Hz more or less than the expected
+                # jump between operating points
+                freqs = result_dict['Frequency'][:, start_col]
+                freqs_expected = np.zeros(freqs.shape)
+                freqs_expected[0] = freqs[0]
+                freqs_expected[1:] = freqs[:-1] + reference_frequency_progression_deltas[desired_mode_name][:].reshape(freqs[:-1].shape)
+                if not np.all(np.abs(freqs_expected - freqs) < 0.1):
+                    print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+                    print('There seem to be some jumps in the frequency for mode: {}'.format(desired_mode_name))
+                    print('This iteration is skipped')
+                    print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+                    # subset_result_dict['postprocessing_success'][desired_mode_name] = False
+                    subset_result_dict['postprocessing_failed'].append(desired_mode_name)
+                    subset_result_dict['frequency'][:, mode_ii] = np.ones(nr_ws) * -999
+                    subset_result_dict['damping'][:, mode_ii] = np.ones(nr_ws) * -999
+
+                    #return False, {'frequency': np.ones((nr_ws, len(desired_modes))) * -999,  # np.array([[-999] * nr_ws] * len(desired_modes)),  #   np.[-999]*(nr_ws*len(desired_modes)),
+                    #               'damping': np.ones((nr_ws, len(desired_modes))) * -999,  # [-999]*(nr_ws*len(desired_modes)),
+                    #               'mode_names': ['Failed'] * len(desired_modes)}
+                else:
+                    subset_result_dict['postprocessing_successful'].append(desired_mode_name)
+                    subset_result_dict['frequency'][:, mode_ii] = result_dict['Frequency'][:, start_col].squeeze()
+                    subset_result_dict['damping'][:, mode_ii] = result_dict['Damping'][:, start_col].squeeze()
 
         subset_result_dict['total_series'] = np.concatenate((subset_result_dict['frequency'].flatten(),
                                                              subset_result_dict['damping'].flatten()))
-        return True, subset_result_dict
+        return subset_result_dict
 
     def run(self, **kwargs):
         """
@@ -222,6 +248,11 @@ class CampbellDiagramModel(Model):
 
         # make unique iteration run directory for this framework iteration
         iteration_run_directory, iteration_id = self._setup_iter_run_dir(logger)
+
+        if restart_available:
+            np.savetxt(os.path.join(iteration_run_directory, 'ready_for_cloning_prj'), np.array([0]))
+            np.savetxt(os.path.join(iteration_run_directory, 'ready_for_adding_queued_jobs_to_batch'), np.array([0]))
+            np.savetxt(os.path.join(iteration_run_directory, 'ready_for_batch_run'), np.array([0]))
 
         if not restart_available:
             # convert spline parameters to physical parameters
@@ -280,10 +311,11 @@ class CampbellDiagramModel(Model):
 
         if self.tool_name == 'bladed-lin' or self.tool_name == 'hawcstab2':
             try:
-                postprocessing_success, campbell_dict = self._postprocessor_bladedlin(result_dict, variable_mode_tracking=True)
-                if not postprocessing_success:
-                    return None, None, campbell_dict
-                time = np.arange(campbell_dict['damping'].shape[0])
+                campbell_dict = self._postprocessor_bladedlin(result_dict, variable_mode_tracking=False)
+                # campbell_dict['postprocessing_success'] = postprocessing_success
+                # if not postprocessing_success:
+                #     return None, None, campbell_dict
+                time = np.arange(campbell_dict['damping'].shape[0]*2)
             except Exception as exc:
                 # framework continuation is guaranteed no matter which failure appears in the postprocessing of the
                 # simulation model for this iteration.
@@ -296,24 +328,35 @@ class CampbellDiagramModel(Model):
 
     @staticmethod
     def first_edge_bw(time, dummy_model_output, campbell_dict):
-        freq_and_damp_joined = np.hstack((campbell_dict['frequency'][:, 0], campbell_dict['damping'][:, 0]))
-        return time, freq_and_damp_joined
+        if 'Rotor 1st edgewise backward whirl' in campbell_dict['postprocessing_successful']:
+            freq_and_damp_joined = np.hstack((campbell_dict['frequency'][:, 0], campbell_dict['damping'][:, 0]))
+            return time, freq_and_damp_joined
+        else:
+            return time, None
 
     @staticmethod
     def first_edge_fw(time, dummy_model_output, campbell_dict):
-        freq_and_damp_joined = np.hstack((campbell_dict['frequency'][:, 1], campbell_dict['damping'][:, 1]))
-        return time, freq_and_damp_joined
+        if 'Rotor 1st edgewise forward whirl' in campbell_dict['postprocessing_successful']:
+            freq_and_damp_joined = np.hstack((campbell_dict['frequency'][:, 1], campbell_dict['damping'][:, 1]))
+            return time, freq_and_damp_joined
+        else:
+            return time, None
 
     @staticmethod
     def second_edge_bw(time, dummy_model_output, campbell_dict):
-        freq_and_damp_joined = np.hstack((campbell_dict['frequency'][:, 2], campbell_dict['damping'][:, 2]))
-        return time, freq_and_damp_joined
+        if 'Rotor 2nd edgewise backward whirl' in campbell_dict['postprocessing_successful']:
+            freq_and_damp_joined = np.hstack((campbell_dict['frequency'][:, 2], campbell_dict['damping'][:, 2]))
+            return time, freq_and_damp_joined
+        else:
+            return time, None
 
     @staticmethod
     def second_edge_fw(time, dummy_model_output, campbell_dict):
-        freq_and_damp_joined = np.hstack((campbell_dict['frequency'][:, 3], campbell_dict['damping'][:, 3]))
-        return time, freq_and_damp_joined
-
+        if 'Rotor 2nd edgewise forward whirl' in campbell_dict['postprocessing_successful']:
+            freq_and_damp_joined = np.hstack((campbell_dict['frequency'][:, 3], campbell_dict['damping'][:, 3]))
+            return time, freq_and_damp_joined
+        else:
+            return time, None
 
 
 
@@ -335,6 +378,8 @@ if __name__ == '__main__':
     features = [model.first_edge_bw, model.first_edge_fw, model.second_edge_bw, model.second_edge_fw]
     UQResultsAnalysis = framework.main(model, features=features, return_postprocessor=True)
 
-    result_analysis_OAT(UQResultsAnalysis)
+    result_analysis_EE(UQResultsAnalysis)
+    # result_analysis_OAT(UQResultsAnalysis)
+
     # campbell_diagram_from_OAT(UQResultsAnalysis)
     # campbell_diagram_with_uncertainty_bands(UQResultsAnalysis)

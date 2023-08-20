@@ -314,7 +314,7 @@ class UQFramework():
                 'restart_h5': self.config['framework']['uncertainty']['restart_h5'],
                 'run_type': self.config['framework']['uncertainty']['run_type']}
 
-    def main(self, model, features=None, return_postprocessor=False):
+    def main(self, model, features=None, return_postprocessor=False):  # , nr_collocation_nodes=0):
         """
         Main function for the sensitivity analysis. Runs uncertainpy uncertainty quantification for the model
         according to uncertainty settings given in the config
@@ -357,7 +357,7 @@ class UQFramework():
                                                       polynomial_order=self.config['framework']['uncertainty'][
                                                           'polynomial_order'],
                                                       nr_collocation_nodes=self.config['framework']['uncertainty'][
-                                                          'nr_collocation_nodes'],
+                                                          'nr_collocation_nodes'],  # collocation_nodes
                                                       nr_mc_samples=self.config['framework']['uncertainty'][
                                                           'nr_mc_samples'],
                                                       morris_nr_of_repetitions=self.config['framework']['uncertainty'][
@@ -684,14 +684,17 @@ def morris_screening(self, **kwargs):
 
     uncertain_params = self.convert_uncertain_parameters()
     nr_params = len(uncertain_params)
-    sampler = qmc.Sobol(d=nr_params)
-    sample = sampler.random(n=nr_of_repetitions*2)
-    # -> array with :nr_of_repetitions of the reference coordinates and nr_of_repetitions: values as disturbance
+    sampler = qmc.Sobol(d=nr_params, seed=0)
+    sample = sampler.random(n=nr_of_repetitions)
+    # NEW: only array with nr_of_repetitions of the reference coordinates  # -> array with :nr_of_repetitions of the reference coordinates and nr_of_repetitions: values as disturbance
 
     # if linear disturbances are preferred, the nr_of_repetitions: samples are modified
-    if kwargs['morris_linear_disturbance'] is True:
-        sample[nr_of_repetitions:] = sample[:nr_of_repetitions] + \
-                                     kwargs['morris_linear_disturbance_factor'] * sample[nr_of_repetitions:]
+    # if kwargs['morris_oat_linear_disturbance'] is True:
+    sample = np.tile(sample, (2, 1))
+    sample[nr_of_repetitions:] = sample[nr_of_repetitions:] + \
+                                 kwargs['morris_oat_linear_disturbance_factor']
+    #sample[nr_of_repetitions:] = sample[:nr_of_repetitions] + \
+    #                             kwargs['morris_oat_linear_disturbance_factor']  # * sample[nr_of_repetitions:]
 
     # build the normalized_nodes array, which will has following format:
     # row 1: unmodified reference coordinates 1
@@ -730,49 +733,41 @@ def morris_screening(self, **kwargs):
                 not_nan_mask.append(i_eval)
 
         if not_nan_mask == []:
-            continue"""
-
+            continue
+            
         evaluations = np.array(data.data[feature].evaluations[not_nan_mask])
-        if evaluations.ndim > 1:
-            nr_of_qoi = evaluations.shape[1]
-        else:
-            nr_of_qoi = 1
+        """
+
+        nr_of_qoi = len(data.data[feature].time)
         ee = np.zeros((nr_params, nr_of_qoi, nr_of_repetitions))
 
+        evaluations = data.data[feature].evaluations
         for repetition in range(nr_of_repetitions):
+
             # evaluation difference between disturbed and reference computation
-            y_delta = evaluations[repetition * (nr_params+1) + 1: (repetition+1) * (nr_params+1)] - evaluations[repetition * (nr_params+1)]
+            y_delta = [evaluations[repetition * (nr_params+1) + 1 + i_param] - evaluations[repetition * (nr_params+1)] for i_param in range(nr_params)]
             # normalized input disturbance
             x_delta = normalized_nodes[:, repetition * (nr_params+1) + 1: (repetition+1) * (nr_params+1)] - normalized_nodes[:, [repetition * (nr_params+1)]]
+
+            # if both reference and disturbed were nans, the s_oat will be nan instead of array with nans
+            for ii in range(len(y_delta)):
+                if np.any(np.isnan(y_delta[ii])) == True:
+                    print('These y_delta result are assumed to be nan: ', y_delta[ii])
+                    y_delta[ii] = np.ones(nr_of_qoi) * np.nan
+
+            y_delta = np.array(y_delta)
             if nr_of_qoi > 1:
                 ee[:, :, repetition] = (y_delta / x_delta.sum(axis=0).reshape((y_delta.shape[0], 1))).reshape((nr_params, nr_of_qoi))
             else:
                 ee[:, :, repetition] = (y_delta / x_delta.sum(axis=0)).reshape((nr_params, nr_of_qoi))
 
         data.data[feature].ee = ee
-        data.data[feature].ee_mean = np.mean(np.abs(ee), axis=-1)
-        data.data[feature].ee_std = np.std(np.abs(ee), axis=-1)
-
-
-    """fig, ax = plt.subplots()
-
-    for idx in range(nr_params):
-        print('MEAN {}: {}'.format(idx, data.data[data.model_name].ee_mean[idx]))
-        print('STD {}: {}'.format(idx, data.data[data.model_name].ee_std[idx]))
-
-        if idx < 10:
-            marker = 'o'
-        else:
-            marker = '+'
-        ax.plot(data.data[data.model_name].ee_mean[idx], data.data[data.model_name].ee_std[idx],
-                marker=marker, label='Uncertain param #{}'.format(idx))
-
-    ax.set_xlabel('Mean')
-    ax.set_ylabel('Standard Dev.')
-    ax.grid()
-    ax.legend()
-    plt.show()"""
-
+        data.data[feature].ee_mean = np.nanmean(np.abs(ee), axis=-1)
+        data.data[feature].ee_std = np.nanstd(np.abs(ee), axis=-1)
+        data.data[feature].ee_mean_mean = np.mean(np.abs(data.data[feature].ee_mean), axis=1)
+        data.data[feature].ee_mean_max = np.max(np.abs(data.data[feature].ee_mean), axis=1)
+        data.data[feature].ee_std_mean = np.mean(np.abs(data.data[feature].ee_std), axis=1)
+        data.data[feature].ee_std_max = np.max(np.abs(data.data[feature].ee_std), axis=1)
 
     return data, None, None
 
@@ -800,8 +795,8 @@ def oat_screening(self, **kwargs):
         if kwargs['morris_oat_linear_disturbance'] is True:
             logger.info('The uncertain parameters are disturbed by {} x Distribution.lower and '
                         '{} x Distribution.upper. This makes sure only the linear effect of the uncertain parameter '
-                        'is computed.'.format(kwargs['morris_linear_disturbance_factor'],
-                                              kwargs['morris_linear_disturbance_factor']))
+                        'is computed.'.format(kwargs['morris_oat_linear_disturbance_factor'],
+                                              kwargs['morris_oat_linear_disturbance_factor']))
             nodes[idx_param, idx_param*nr_samples_per_param] = all_distributions[idx_param].lower[0] * kwargs['morris_oat_linear_disturbance_factor']
             nodes[idx_param, idx_param * nr_samples_per_param + 1] = all_distributions[idx_param].upper[0] * kwargs['morris_oat_linear_disturbance_factor']
         else:
@@ -827,7 +822,7 @@ def oat_screening(self, **kwargs):
 
         data.data[feature].nodes = nodes
         data.data[feature].s_oat = s_oat
-        data.data[feature].s_oat_mean = np.mean(np.array(s_oat), axis=1)
-        data.data[feature].s_oat_max = np.max(np.array(s_oat), axis=1)
+        data.data[feature].s_oat_mean = np.mean(np.abs(np.array(s_oat)), axis=1)
+        data.data[feature].s_oat_max = np.max(np.abs(np.array(s_oat)), axis=1)
 
     return data, None, None

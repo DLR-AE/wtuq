@@ -1,0 +1,114 @@
+
+[framework]
+    [[uncertainty]]
+        base_directory = Z:\projects\Torque2024
+        run_directory = IEA_15MW_morris_postpro
+        n_CPU = 5
+
+        uq_method = morris
+        morris_nr_of_repetitions = 10
+        morris_oat_linear_disturbance = True
+        morris_oat_linear_disturbance_factor = 1E-2
+
+    [[parameters]]
+        [[[nacelle_mass]]]
+            radial_distribution = none
+            param_distribution = uniform
+            min = -0.1
+            max = 0.1
+        [[[nacelle_cog_vertical]]]
+            radial_distribution = none
+            param_distribution = uniform
+            min = -0.1
+            max = 0.1
+        [[[nacelle_cog_horizontal]]]
+            radial_distribution = none
+            param_distribution = uniform
+            min = -0.1
+            max = 0.1
+        [[[nacelle_yaw_inertia]]]
+            radial_distribution = none
+            param_distribution = uniform
+            min = -0.1
+            max = 0.1
+        [[[nacelle_rolling_inertia]]]
+            radial_distribution = none
+            param_distribution = uniform
+            min = -0.1
+            max = 0.1
+        [[[cone_angle]]]
+            radial_distribution = none
+            param_distribution = uniform
+            min = -0.1
+            max = 0.1
+        [[[tower_bending_stiffness]]]
+            radial_distribution = none
+            param_distribution = uniform
+            min = -0.1
+            max = 0.1
+        [[[tower_torsional_stiffness]]]
+            radial_distribution = none
+            param_distribution = uniform
+            min = -0.1
+            max = 0.1
+        [[[tower_shear_stiffness]]]
+            radial_distribution = none
+            param_distribution = uniform
+            min = -0.1
+            max = 0.1
+        [[[tower_mass]]]
+            radial_distribution = none
+            param_distribution = uniform
+            min = -0.1
+            max = 0.1
+        [[[polar_clalpha]]]
+            radial_distribution = none
+            param_distribution = uniform
+            min = -0.1
+            max = 0.1
+        [[[blade_chord_root]]]
+            radial_distribution = none
+            param_distribution = uniform
+            min = -0.1
+            max = 0.1
+        [[[blade_chord_tip]]]
+            radial_distribution = none
+            param_distribution = uniform
+            min = -0.1
+            max = 0.1
+        [[[blade_na_x]]]
+            radial_distribution = none
+            param_distribution = uniform
+            min = -0.1
+            max = 0.1
+        [[[blade_flap_stiffness]]]
+            radial_distribution = none
+            param_distribution = uniform
+            min = -0.1
+            max = 0.1
+        [[[blade_edge_stiffness]]]
+            radial_distribution = none
+            param_distribution = uniform
+            min = -0.1
+            max = 0.1
+        [[[blade_mass]]]
+            radial_distribution = none
+            param_distribution = uniform
+            min = -0.1
+            max = 0.1
+        [[[blade_cog_y]]]
+            radial_distribution = none
+            param_distribution = uniform
+            min = -0.1
+            max = 0.1
+        [[[blade_sc_y]]]
+            radial_distribution = none
+            param_distribution = uniform
+            min = -0.1
+            max = 0.1
+
+
+[use_case]
+    [[tool]]
+        tool_name = bladed-lin
+        template_project = 'C:\Users\verd_he\projects\Torque2024\reference_model\15MW_NREL_DNV_v1.1_onshore_tower_26Sections.prj'

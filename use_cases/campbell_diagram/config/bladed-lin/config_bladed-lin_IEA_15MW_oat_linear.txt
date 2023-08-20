@@ -2,13 +2,13 @@
 [framework]
     [[uncertainty]]
         base_directory = Z:\projects\Torque2024
-        run_directory = IEA_15MW_oat_postpro
+        run_directory = IEA_15MW_oat_linear_postpro
         n_CPU = 5
 
         uq_method = oat
         #morris_nr_of_repetitions = 1
-        morris_oat_linear_disturbance = False
-        morris_oat_linear_disturbance_factor = 1E-3
+        morris_oat_linear_disturbance = True
+        morris_oat_linear_disturbance_factor = 1E-1
 
     [[parameters]]
         [[[nacelle_mass]]]

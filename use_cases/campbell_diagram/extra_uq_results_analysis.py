@@ -55,7 +55,7 @@ def campbell_diagram_with_uncertainty_bands(UQResultsAnalysis):
     plt.show()
 
 
-def transform_to_campbellviewer_database(dir, base_output_name='CampbellViewerDatabase_', run_name='from_input_params'):
+def transform_to_campbellviewer_database(dir, base_output_name='CampbellViewerDatabase_', get_run_name_from='from_input_params'):
     """
     Main problem: seems like memory overload if too many datasets are loaded in to the database, therefore divide it
     into multiple databases
@@ -76,7 +76,7 @@ def transform_to_campbellviewer_database(dir, base_output_name='CampbellViewerDa
 
 
             run_name = dir.split('\\')[-1]  # default name if specific run name can not be found
-            if run_name == 'from_input_params':
+            if get_run_name_from == 'from_input_params':
                 for param, value in input_params.items():
                     if value < 0:
                         # CUTOUT 'SCALAR PROPERTY'
@@ -131,56 +131,99 @@ def result_analysis_OAT(UQResultsAnalysis):
     campbell_diagram_from_OAT(UQResultsAnalysis, uq_results)
 
 
-def compare_oat_metrics(UQResultsAnalysis, oat_max, ylabel):
+def compare_oat_metrics(UQResultsAnalysis, oat_metric, ylabel):
     """
     Compare oat metrics of multiple framework runs with each other. Assumed that those runs are made with the
     same uncertain parameter sets. Bar plot made with pandas.
     """
-    for feature in ['first_edge_bw', 'first_edge_fw', 'second_edge_bw', 'second_edge_fw', 'total']:
-        fig = plt.figure('Comparison OAT metrics - {} - {}'.format(feature, ylabel))
-        ax1 = fig.gca()
+    feat_to_label = {'first_edge_bw': '1st edge BW',
+                     'first_edge_fw': '1st edge FW',
+                     'second_edge_bw': '2nd edge BW',
+                     'second_edge_fw': '2nd edge FW',
+                     'total': 'Total'}
 
-        metric_pd_dict = dict()  # key => legend label
-        color_list = list()
-        for uq_result in oat_max:
-            oat_max_nans_eliminated = oat_max[uq_result][feature]
-            oat_max_nans_eliminated[np.isnan(oat_max[uq_result][feature])] = -1
-            metric_pd_dict[UQResultsAnalysis.run_label[uq_result]] = oat_max_nans_eliminated
-            color_list.append(UQResultsAnalysis.run_color[uq_result])
+    existing_sorting_index = None
+    for visualization_mode in ['unsorted', 'sorted']:
+        fig_subplots, ax_subplots = plt.subplots(num='Comparison OAT metrics - All Features - {}'.format(ylabel),
+                                                 nrows=1, ncols=5, figsize=(14, 10.5))
 
-        # CUT OFF THE SCALAR_PROPERTY FOR NOW
-        index = [name[:-16] for name in UQResultsAnalysis.uncertain_param_names[uq_result]]
-        df1 = pd.DataFrame(metric_pd_dict, index=index)
-        if color_list[0] == None:
-            df1.plot.bar(ax=ax1, rot=90)
-        else:
-            df1.plot.bar(ax=ax1, rot=90, color=color_list)
-        ax1.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+        for ifeat, feature in enumerate(['total', 'first_edge_bw', 'first_edge_fw', 'second_edge_bw', 'second_edge_fw']):
+            fig = plt.figure('Comparison OAT metrics - {} - {}'.format(feature, ylabel), figsize=(5.5, 10))
+            ax1 = fig.gca()
 
-        ax1.set_ylabel(ylabel)
-        ax1.grid(axis='y')
-        ax1.set_axisbelow(True)
-        fig.tight_layout()
+            metric_pd_dict = dict()  # key => legend label
+            color_list = list()
+            for uq_result in oat_metric:
+                oat_max_nans_eliminated = oat_metric[uq_result][feature]
+                oat_max_nans_eliminated[np.isnan(oat_metric[uq_result][feature])] = -1
+                metric_pd_dict[UQResultsAnalysis.run_label[uq_result]] = oat_max_nans_eliminated
+                color_list.append(UQResultsAnalysis.run_color[uq_result])
 
-        fig.savefig(os.path.join(UQResultsAnalysis.output_dir, '{} - {}.png'.format(feature, ylabel)), bbox_inches='tight', dpi=300)
-        plt.show()
-        # plt.close(fig)
+            # CUT OFF THE SCALAR_PROPERTY FOR NOW
+            index = [name[:-16] for name in UQResultsAnalysis.uncertain_param_names[uq_result]]
+            df1 = pd.DataFrame(metric_pd_dict, index=index)
+            if visualization_mode == 'sorted':
+                if existing_sorting_index is None:
+                    df1 = df1.sort_values(by=['bladed-lin'])
+                    existing_sorting_index = df1.index
+                else:
+                    df1 = df1.reindex(existing_sorting_index)
+
+            if color_list[0] == None:
+                df1.plot.barh(ax=ax1, legend=False)
+                df1.plot.barh(ax=ax_subplots[ifeat], legend=False)
+            else:
+                df1.plot.barh(ax=ax1, color=color_list, legend=False)
+                df1.plot.barh(ax=ax_subplots[ifeat], color=color_list, legend=False)
+
+            # ax1.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+
+            for ax in [ax1, ax_subplots[ifeat]]:
+                ax.set_title(feat_to_label[feature])
+                ax.grid(axis='y')
+                ax.set_axisbelow(True)
+
+            if ifeat > 0:
+                ax_subplots[ifeat].tick_params(labelleft=False)
+
+            fig.tight_layout()
+
+            fig.savefig(os.path.join(UQResultsAnalysis.output_dir, '{} - {} - {}.png'.format(feature, ylabel, visualization_mode)), bbox_inches='tight', dpi=300)
+
+            # plt.show(block=False)
+            plt.close(fig)
+        fig_subplots.tight_layout()
+        fig_subplots.savefig(os.path.join(UQResultsAnalysis.output_dir, 'All features - {} - {}.png'.format(ylabel, visualization_mode)), bbox_inches='tight', dpi=300)
+
+        # plt.show()
+        plt.close(fig_subplots)
 
 
 def campbell_diagram_from_OAT(UQResultsAnalysis, uq_results):
 
-    reference_frequency_progression = {
-        'Rotor 1st edgewise backward whirl': [0.576163, 0.569978, 0.570617, 0.571181, 0.56783, 0.56467],
-        'Rotor 1st edgewise forward whirl': [0.810334, 0.821295, 0.822507, 0.819621, 0.815166, 0.811032],
-        'Rotor 2nd edgewise backward whirl': [2.0494, 2.0184, 2.0423, 2.0542, 2.0583, 2.0614],
-        'Rotor 2nd edgewise forward whirl': [2.24289, 2.25599, 2.24389, 2.21513, 2.19358, 2.17557]}
+    # 51 Section Blade
+    #reference_frequency_progression = {
+    #    'Rotor 1st edgewise backward whirl': [0.576163, 0.569978, 0.570617, 0.571181, 0.56783, 0.56467],
+    #    'Rotor 1st edgewise forward whirl': [0.810334, 0.821295, 0.822507, 0.819621, 0.815166, 0.811032],
+    #    'Rotor 2nd edgewise backward whirl': [2.0494, 2.0184, 2.0423, 2.0542, 2.0583, 2.0614],
+    #    'Rotor 2nd edgewise forward whirl': [2.24289, 2.25599, 2.24389, 2.21513, 2.19358, 2.17557]}
 
-    reference_damping_progression = {
-        'Rotor 1st edgewise backward whirl': np.array([0.028861, 0.015432, 0.008905, 0.007159, 0.007289, 0.007924])*100,
-        'Rotor 1st edgewise forward whirl': np.array([0.029442, 0.017596, 0.0115, 0.00923, 0.008381, 0.008059])*100,
-        'Rotor 2nd edgewise backward whirl': np.array([0.0436, 0.0233, 0.0139, 0.0134, 0.0154, 0.0172])*100,
-        'Rotor 2nd edgewise forward whirl': np.array([0.020073, 0.014623, 0.010538, 0.012653, 0.018184, 0.026091])*100}
+    #reference_damping_progression = {
+    #    'Rotor 1st edgewise backward whirl': np.array([0.028861, 0.015432, 0.008905, 0.007159, 0.007289, 0.007924])*100,
+    #    'Rotor 1st edgewise forward whirl': np.array([0.029442, 0.017596, 0.0115, 0.00923, 0.008381, 0.008059])*100,
+    #    'Rotor 2nd edgewise backward whirl': np.array([0.0436, 0.0233, 0.0139, 0.0134, 0.0154, 0.0172])*100,
+    #    'Rotor 2nd edgewise forward whirl': np.array([0.020073, 0.014623, 0.010538, 0.012653, 0.018184, 0.026091])*100}
 
+    # 26 Section Blade
+    reference_frequency_progression = {'Rotor 1st edgewise backward whirl': [0.579, 0.572, 0.572, 0.570, 0.569, 0.563],
+                                       'Rotor 1st edgewise forward whirl': [0.813, 0.823, 0.824, 0.822, 0.817, 0.816],
+                                       'Rotor 2nd edgewise backward whirl': [2.053, 2.034, 2.050, 2.054, 2.061, 2.058],
+                                       'Rotor 2nd edgewise forward whirl': [2.257, 2.265, 2.253, 2.235, 2.208, 2.205]}
+
+    reference_damping_progression = {'Rotor 1st edgewise backward whirl': [2.927, 1.638, 0.947, 0.760, 0.707, 0.769],
+                                     'Rotor 1st edgewise forward whirl': [2.997, 1.838, 1.195, 0.937, 0.831, 0.746],
+                                     'Rotor 2nd edgewise backward whirl': [3.143, 1.986, 1.259, 1.307, 1.354, 1.679],
+                                     'Rotor 2nd edgewise forward whirl': [1.823, 1.408, 1.033, 1.163, 1.625, 2.070]}
 
     # nr_wind_speeds = 6  # uq_results.data['CampbellDiagramModel'].evaluations.shape[1]
     # start_wind_speed = 10
@@ -243,6 +286,66 @@ def campbell_diagram_from_OAT(UQResultsAnalysis, uq_results):
         # plt.show()
 
 
+def result_analysis_EE(UQResultsAnalysis):
+    uq_results = UQResultsAnalysis.get_UQ_results(UQResultsAnalysis.uncertainpy_results[0])
+
+    UQResultsAnalysis.uncertain_param_names[UQResultsAnalysis.uncertainpy_results[0]] = uq_results.uncertain_parameters
+
+    ee_mean_max = {UQResultsAnalysis.uncertainpy_results[0]: {}}
+    ee_mean_mean = {UQResultsAnalysis.uncertainpy_results[0]: {}}
+    ee_std_max = {UQResultsAnalysis.uncertainpy_results[0]: {}}
+    ee_std_mean = {UQResultsAnalysis.uncertainpy_results[0]: {}}
+
+    for feature in uq_results.data:
+        ee_mean_max[UQResultsAnalysis.uncertainpy_results[0]][feature] = uq_results.data[feature].ee_mean_max
+        ee_mean_mean[UQResultsAnalysis.uncertainpy_results[0]][feature] = uq_results.data[feature].ee_mean_mean
+        ee_std_max[UQResultsAnalysis.uncertainpy_results[0]][feature] = uq_results.data[feature].ee_std_max
+        ee_std_mean[UQResultsAnalysis.uncertainpy_results[0]][feature] = uq_results.data[feature].ee_std_mean
+
+    for dicti in [ee_mean_max[UQResultsAnalysis.uncertainpy_results[0]],
+                  ee_std_max[UQResultsAnalysis.uncertainpy_results[0]]]:
+        dicti['total'] = np.max(
+            np.vstack((dicti['first_edge_bw'],
+                       dicti['first_edge_fw'],
+                       dicti['second_edge_bw'],
+                       dicti['second_edge_fw'])), axis=0)
+
+    for dicti in [ee_mean_mean[UQResultsAnalysis.uncertainpy_results[0]],
+                  ee_std_mean[UQResultsAnalysis.uncertainpy_results[0]]]:
+        dicti['total'] = np.mean(
+            np.vstack((dicti['first_edge_bw'],
+                       dicti['first_edge_fw'],
+                       dicti['second_edge_bw'],
+                       dicti['second_edge_fw'])), axis=0)
+
+    compare_oat_metrics(UQResultsAnalysis, ee_mean_max, ylabel='max. EE mean')
+    compare_oat_metrics(UQResultsAnalysis, ee_mean_mean, ylabel='mean EE mean')
+    compare_oat_metrics(UQResultsAnalysis, ee_std_max, ylabel='max. EE std')
+    compare_oat_metrics(UQResultsAnalysis, ee_std_mean, ylabel='mean EE std')
+
+
+
+    for feature in uq_results.data:
+
+        fig, ax = plt.subplots(figsize=(18, 10))
+
+        for idx in range(len(uq_results.uncertain_parameters)):
+            if idx < 10:
+                marker = 'o'
+            else:
+                marker = 's'
+            ax.scatter(uq_results.data[feature].ee_mean[idx], uq_results.data[feature].ee_std[idx],
+                       label=uq_results.uncertain_parameters[idx], marker=marker)
+
+        ax.set_xlabel('Mean')
+        ax.set_ylabel('Standard Dev.')
+        ax.grid()
+        ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+        fig.tight_layout()
+        fig.savefig(os.path.join(UQResultsAnalysis.output_dir, 'EE - {}.png'.format(feature)), bbox_inches='tight', dpi=300)
+        plt.show()
+
+
 def compare_campbell_plot(self):
     """
     Compare the frequency/damping of different runs for the different tools
@@ -287,10 +390,16 @@ def compare_campbell_plot(self):
 if __name__ == '__main__':
     #transform_to_campbellviewer_database(
     #    r'Z:\projects\Torque2024\IEA_15MW_MC\*',
-    #    base_output_name='CampbellViewerDatabase_IEA_15MW_MC', run_name='from_dir_name')
+    #    base_output_name='CampbellViewerDatabase_IEA_15MW_MC', get_run_name_from='from_dir_name')
+    #transform_to_campbellviewer_database(
+    #    r'Z:\projects\Torque2024\IEA_15MW_MC_conservative\*',
+    #    base_output_name='CampbellViewerDatabase_IEA_15MW_MC_conservative', get_run_name_from='from_dir_name')
+    #transform_to_campbellviewer_database(
+    #    r'Z:\projects\Torque2024\IEA_15MW_oat\*',
+    #    base_output_name='CampbellViewerDatabase_IEA_15MW_oat', get_run_name_from='from_input_params')
     transform_to_campbellviewer_database(
-        r'Z:\projects\Torque2024\IEA_15MW_MC_conservative\*',
-        base_output_name='CampbellViewerDatabase_IEA_15MW_MC_conservative', run_name='from_dir_name')
+        r'Z:\projects\Torque2024\IEA_15MW_oat_linear\*',
+        base_output_name='CampbellViewerDatabase_IEA_15MW_oat_linear', get_run_name_from='from_input_params')
     # transform_to_campbellviewer_database(r'E:\IEA_15MW_large_uncertainties\*', base_output_name='CampbellViewerDatabase_IEA_15MW_large_uncertainties')
     # transform_to_campbellviewer_database(r'C:\Users\verd_he\projects\Torque2024\wtuq\use_cases\campbell_diagram\reference_data\bladed-lin\IEA_15MW\*',
     #                                      base_output_name='CampbellViewerDatabase_IEA_15MW')
