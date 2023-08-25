@@ -64,7 +64,7 @@ class Model(un.Model):
 
     def __init__(self, model_inputs=dict()):
         # mandatory
-        super(Model, self).__init__(labels=["Time (s)", "Damping (%)"])
+        super(Model, self).__init__(ignore=True)  # labels=None,
 
         run_directory = model_inputs['run_directory']
         restart_directory = model_inputs['restart_directory']
@@ -362,7 +362,7 @@ class UQFramework():
                                                           'nr_mc_samples'],
                                                       morris_nr_of_repetitions=self.config['framework']['uncertainty'][
                                                           'morris_nr_of_repetitions'],
-                                                      morris_oat_linear_disturbance =self.config['framework']['uncertainty'][
+                                                      morris_oat_linear_disturbance=self.config['framework']['uncertainty'][
                                                           'morris_oat_linear_disturbance'],
                                                       morris_oat_linear_disturbance_factor=self.config['framework']['uncertainty'][
                                                           'morris_oat_linear_disturbance_factor'])

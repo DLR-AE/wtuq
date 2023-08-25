@@ -247,8 +247,9 @@ class CampbellDiagramModel(Model):
         if self.restart is True:
             restart_available, result_dict = self._check_restart_options()
 
-        # make unique iteration run directory for this framework iteration
-        iteration_run_directory, iteration_id = self._setup_iter_run_dir(logger)
+        if not restart_available:
+            # make unique iteration run directory for this framework iteration
+            iteration_run_directory, iteration_id = self._setup_iter_run_dir(logger)
 
             # convert spline parameters to physical parameters
             logger.debug('Convert parameters to splines')
