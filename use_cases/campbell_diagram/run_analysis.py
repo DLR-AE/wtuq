@@ -233,6 +233,7 @@ class CampbellDiagramModel(Model):
 
         logger = logging.getLogger('cd.uq.model.run')
 
+        mp_lock = kwargs.pop('mp_lock')  # multi-processing lock
         self.input_parameters = kwargs  # (uncertain + fixed) input_parameters
 
         # check if restart based on uncertainpy result file is an option
@@ -249,12 +250,6 @@ class CampbellDiagramModel(Model):
         # make unique iteration run directory for this framework iteration
         iteration_run_directory, iteration_id = self._setup_iter_run_dir(logger)
 
-        if restart_available:
-            np.savetxt(os.path.join(iteration_run_directory, 'ready_for_cloning_prj'), np.array([0]))
-            np.savetxt(os.path.join(iteration_run_directory, 'ready_for_adding_queued_jobs_to_batch'), np.array([0]))
-            np.savetxt(os.path.join(iteration_run_directory, 'ready_for_batch_run'), np.array([0]))
-
-        if not restart_available:
             # convert spline parameters to physical parameters
             logger.debug('Convert parameters to splines')
             self._convert_parameters_to_splines()
@@ -266,6 +261,8 @@ class CampbellDiagramModel(Model):
             # save_dict_h5py(os.path.join(iteration_run_directory, 'blade_data.hdf5'), self.blade_data)
 
             logger.debug('Initialize tool interface')
+            if mp_lock is not None:
+                mp_lock.acquire()
             if self.tool_name == 'bladed-lin':
                 from tool_interfaces.bladed_lin_interface import BladedLinModel
                 self.simulation_tool = BladedLinModel(iteration_run_directory, self.tool_config)
@@ -275,13 +272,15 @@ class CampbellDiagramModel(Model):
             elif self.tool_name == 'dummy-tool':
                 from tool_interfaces.dummy_tool_interface import DummyToolModel
                 self.simulation_tool = DummyToolModel(iteration_run_directory, self.tool_config)
+            if mp_lock is not None:
+                mp_lock.release()
 
             try:
                 logger.debug('Create tool simulation')
                 self.simulation_tool.create_simulation(self.preprocessed_data)
 
                 logger.debug('Run tool simulation')
-                self.simulation_tool.run_simulation()
+                self.simulation_tool.run_simulation(mp_lock)
 
                 try:
                     logger.debug('Extract tool results')

@@ -133,12 +133,12 @@ class BladedModel(SimulationModel):
             else:
                 continue
 
-    def run_simulation(self):
+    def run_simulation(self, mp_lock=None):
         """
         Execute Bladed simulation
         """
         self.result_prefix = 'stab_analysis_run'
-        self.bl_model.run_simulation(result_directory=self.run_directory, prefix=self.result_prefix)
+        self.bl_model.run_simulation(result_directory=self.run_directory, prefix=self.result_prefix, mp_lock=mp_lock)
 
     def modify_nacelle_mass(self, value):
         """
