@@ -6,7 +6,7 @@
         n_CPU = 5
 
         uq_method = morris
-        morris_nr_of_repetitions = 10
+        morris_nr_of_repetitions = 30
         morris_oat_linear_disturbance = True
         morris_oat_linear_disturbance_factor = 1E-2
 

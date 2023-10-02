@@ -749,7 +749,7 @@ def morris_screening(self, **kwargs):
             # evaluation difference between disturbed and reference computation
             y_delta = [evaluations[repetition * (nr_params+1) + 1 + i_param] - evaluations[repetition * (nr_params+1)] for i_param in range(nr_params)]
             # normalized input disturbance
-            x_delta = normalized_nodes[:, repetition * (nr_params+1) + 1: (repetition+1) * (nr_params+1)] - normalized_nodes[:, [repetition * (nr_params+1)]]
+            x_delta = nodes[:, repetition * (nr_params+1) + 1: (repetition+1) * (nr_params+1)] - nodes[:, [repetition * (nr_params+1)]]
 
             # if both reference and disturbed were nans, the s_oat will be nan instead of array with nans
             for ii in range(len(y_delta)):
@@ -762,6 +762,13 @@ def morris_screening(self, **kwargs):
                 ee[:, :, repetition] = (y_delta / x_delta.sum(axis=0).reshape((y_delta.shape[0], 1))).reshape((nr_params, nr_of_qoi))
             else:
                 ee[:, :, repetition] = (y_delta / x_delta.sum(axis=0)).reshape((nr_params, nr_of_qoi))
+
+        # skip_repetition = 24
+        # print('CAREFUL {}the Morris repetition manually removed from uncertainty analysis, because postprocessing was'
+        #      ' not good enough.'.format(skip_repetition))
+
+        # if ee.shape[-1] >= skip_repetition:
+        #     ee = np.delete(ee, skip_repetition-1, -1)
 
         data.data[feature].ee = ee
         data.data[feature].ee_mean = np.nanmean(np.abs(ee), axis=-1)
@@ -804,27 +811,35 @@ def oat_screening(self, **kwargs):
         else:
             logger.info('The uncertain parameters are disturbed by -Distribution.lower and +Distribution.upper. '
                         'This could give false results for nonlinear functions.')
-            nodes[idx_param, idx_param*nr_samples_per_param] = all_distributions[idx_param].lower[0]
+            nodes[idx_param, idx_param * nr_samples_per_param] = all_distributions[idx_param].lower[0]
             nodes[idx_param, idx_param * nr_samples_per_param + 1] = all_distributions[idx_param].upper[0]
 
     deltas = np.sum(nodes - nodes_mean, axis=0)
+    # print('Distribution widths for OAT calculation manipulated')
+    # deltas[68] = -0.01
+    # deltas[69] = 0.01
+    # deltas[72] = -0.01
+    # deltas[73] = 0.01
 
     data = self.runmodel.run(nodes, uncertain_params)
 
     for feature in data.data:
+        if feature == 'CampbellDiagramModel':
+            continue
+
         s_oat = [(data.data[feature].evaluations[i] - data.data[feature].evaluations[i+1]) / (deltas[i] - deltas[i+1])
                  for i in range(0, nr_params*nr_samples_per_param, 2)]
 
         # if both low and high were nans, the s_oat will be nan instead of array with nans
-        nr_campbell_diagram_points = len(data.data[feature].time)
-        for ii in range(len(s_oat)):
-            if np.any(np.isnan(s_oat[ii])) == True:
-                print('These s_oat result are assumed to be nan: ', s_oat[ii])
-                s_oat[ii] = np.ones(nr_campbell_diagram_points) * np.nan
+        #nr_campbell_diagram_points = len(data.data[feature].time)
+        #for ii in range(len(s_oat)):
+        #    if np.any(np.isnan(s_oat[ii])) == True:
+        #        print('These s_oat result are assumed to be nan: ', s_oat[ii])
+        #        s_oat[ii] = np.ones(nr_campbell_diagram_points) * np.nan
 
         data.data[feature].nodes = nodes
         data.data[feature].s_oat = s_oat
-        data.data[feature].s_oat_mean = np.mean(np.abs(np.array(s_oat)), axis=1)
-        data.data[feature].s_oat_max = np.max(np.abs(np.array(s_oat)), axis=1)
+        data.data[feature].s_oat_mean = np.nanmean(np.abs(np.array(s_oat)), axis=1)
+        data.data[feature].s_oat_max = np.nanmax(np.abs(np.array(s_oat)), axis=1)
 
     return data, None, None

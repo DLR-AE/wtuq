@@ -10,7 +10,7 @@ from wtuq_framework.helperfunctions import save_dict_json, load_dict_json, save_
     get_CPU
 
 from wtuq_framework.uq_framework import Model, UQFramework, ReferenceRunExit
-from extra_uq_results_analysis import result_analysis_OAT, result_analysis_EE, campbell_diagram_with_uncertainty_bands, campbell_diagram_from_OAT
+from extra_uq_results_analysis import result_analysis_PCE, result_analysis_OAT, result_analysis_EE, campbell_diagram_with_uncertainty_bands, campbell_diagram_from_OAT
 
 
 class CampbellDiagramModel(Model):
@@ -102,13 +102,22 @@ class CampbellDiagramModel(Model):
         #                                   'Rotor 2nd edgewise backward whirl': [2.0494, 2.0184, 2.0423, 2.0542, 2.0583, 2.0614],
         #                                   'Rotor 2nd edgewise forward whirl': [2.24289, 2.25599, 2.24389, 2.21513, 2.19358, 2.17557]}
 
-        # IEA 15 MW reference Campbell data (26 Sections)
+        # IEA 15 MW reference Campbell data (26 Sections) - also suffices for 10 Perturbation Points simulation
         desired_modes = ['Rotor 1st edgewise backward whirl', 'Rotor 1st edgewise forward whirl',
                          'Rotor 2nd edgewise backward whirl', 'Rotor 2nd edgewise forward whirl']
         reference_frequency_progression = {'Rotor 1st edgewise backward whirl': [0.579, 0.572, 0.572, 0.570, 0.569, 0.563],
                                            'Rotor 1st edgewise forward whirl': [0.813, 0.823, 0.824, 0.822, 0.817, 0.816],
                                            'Rotor 2nd edgewise backward whirl': [2.053, 2.034, 2.050, 2.054, 2.061, 2.058],
                                            'Rotor 2nd edgewise forward whirl': [2.257, 2.265, 2.253, 2.235, 2.208, 2.205]}
+
+        # 26 Section Blade - 2-20-2
+        #desired_modes = ['Rotor 1st edgewise backward whirl', 'Rotor 1st edgewise forward whirl',
+        #                 'Rotor 2nd edgewise backward whirl', 'Rotor 2nd edgewise forward whirl']
+        #reference_frequency_progression = {
+        #    'Rotor 1st edgewise backward whirl': [0.611, 0.613, 0.618, 0.608, 0.579, 0.571, 0.572, 0.570, 0.569, 0.563],
+        #    'Rotor 1st edgewise forward whirl': [0.781, 0.784, 0.789, 0.800, 0.814, 0.823, 0.824, 0.822, 0.820, 0.816],
+        #    'Rotor 2nd edgewise backward whirl': [2.063, 2.072, 2.082, 2.079, 2.054, 2.036, 2.050, 2.054, 2.056, 2.058],
+        #    'Rotor 2nd edgewise forward whirl': [2.194, 2.206, 2.218, 2.238, 2.257, 2.267, 2.253, 2.235, 2.220, 2.206]}
 
         reference_frequency_progression_deltas = dict()
         for mode in reference_frequency_progression:
@@ -125,6 +134,10 @@ class CampbellDiagramModel(Model):
         subset_result_dict['frequency'] = np.zeros((nr_ws, len(desired_modes)))
         for mode_ii, desired_mode_name in enumerate(desired_modes):
             matching_mode_name_indices = np.where(np.array(available_mode_names) == desired_mode_name)[0]
+            if desired_mode_name == 'Rotor 2nd edgewise backward whirl':
+                matching_mode_name_indices2 = np.where(np.array(available_mode_names) == 'Rotor 2nd edgewise sine cyclic')[0]
+                matching_mode_name_indices = np.hstack((matching_mode_name_indices, matching_mode_name_indices2))
+
             if len(matching_mode_name_indices) == 0:
                 print('{} is not available in the result_dict, this mode is no longer used'.format(desired_mode_name))
                 subset_result_dict['postprocessing_failed'].append(desired_mode_name)
@@ -137,7 +150,7 @@ class CampbellDiagramModel(Model):
                 subset_result_dict['mode_names'].append(desired_mode_name)
             else:
                 print('Mode: {} is found multiple times in the result_dict. The last mode will be used as start'.format(desired_mode_name))
-                start_col = matching_mode_name_indices[-1]
+                start_col = max(matching_mode_name_indices)  # matching_mode_name_indices[-1]
                 subset_result_dict['mode_names'].append(desired_mode_name)
 
             if variable_mode_tracking:
@@ -380,6 +393,7 @@ if __name__ == '__main__':
 
     result_analysis_EE(UQResultsAnalysis)
     # result_analysis_OAT(UQResultsAnalysis)
+    # result_analysis_PCE(UQResultsAnalysis)
 
     # campbell_diagram_from_OAT(UQResultsAnalysis)
     # campbell_diagram_with_uncertainty_bands(UQResultsAnalysis)

@@ -2,10 +2,11 @@
 [framework]
     [[uncertainty]]
         base_directory = Z:\projects\Torque2024
-        run_directory = IEA_15MW_pce
+        run_directory = IEA_15MW_pce_2-20-2
         n_CPU = 5
 
         uq_method = pc
+        nr_collocation_nodes = 900
         # morris_nr_of_repetitions = 10
         # morris_oat_linear_disturbance = True
         # morris_oat_linear_disturbance_factor = 1E-2
@@ -51,4 +52,4 @@
 [use_case]
     [[tool]]
         tool_name = bladed-lin
-        template_project = 'C:\Users\verd_he\projects\Torque2024\reference_model\15MW_NREL_DNV_v1.1_onshore_tower_26Sections.prj'
+        template_project = 'C:\Users\verd_he\projects\Torque2024\reference_model\15MW_NREL_DNV_v1.1_onshore_tower_26Sections_2-20-2.prj'
