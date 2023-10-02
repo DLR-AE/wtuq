@@ -448,143 +448,42 @@ class BladedModel(SimulationModel):
                                        cl_control_points_new=f_diff(alpha_coordinates) + f_orig(alpha_coordinates))
 
     def modify_polars_new(self, preprocessed_data):
-        if 'polar_clalpha' in preprocessed_data:
-            factor_clalpha = preprocessed_data['polar_clalpha']
-        else:
-            factor_clalpha = np.array(0)
 
-        if 'polar_alpha_max' in preprocessed_data:
-            factor_alpha_max = preprocessed_data['polar_alpha_max']
-        else:
-            factor_alpha_max = np.array(0)
+        # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        # the airfoils in bladed have 1 extra (dummy polar) at index 0 and for both the demo-a and IEA model the
+        # first cylindrical airfoil is skipped. So only polars 2 -> end have to be modified
+        # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+        polars = self.bl_model.get_polars()
 
         print('CAREFUL! Reference polar data hardcoded here')
         ref_polar_parametrization = dict()
+
         # demo-a
-        # ref_polar_parametrization['alpha_lin'] = [-8, -10, -11.3]
-        # ref_polar_parametrization['alpha_tes'] = [5, 8, 7]
-        # ref_polar_parametrization['alpha_max'] = [10, 13, 14]
+        # ref_polar_parametrization['alpha_lin'] = [0, 0, -8, -10, -11.3]
+        # ref_polar_parametrization['alpha_tes'] = [0, 0, 5, 8, 7]
+        # ref_polar_parametrization['alpha_max'] = [0, 0, 10, 13, 14]
+        # polars_to_modify_idx = np.arange(2, 5)
 
         # IEA 15 MW
-        ref_polar_parametrization['alpha_lin'] = [-8.5, -8, -10, -10, -10, -10, -10]
-        ref_polar_parametrization['alpha_tes'] = [9.12, 8, 9, 10, 10, 10, 9]
-        ref_polar_parametrization['alpha_max'] = [15.94, 14, 16, 15, 14, 16, 15]
+        ref_polar_parametrization['alpha_lin'] = [0, 0, -8.5, -8, -10, -10, -10, -10, -10]
+        ref_polar_parametrization['alpha_tes'] = [0, 0, 9.12, 8, 9, 10, 10, 10, 9]
+        ref_polar_parametrization['alpha_max'] = [0, 0, 15.94, 14, 16, 15, 14, 16, 15]
+        polars_to_modify_idx = np.arange(2, 9)
 
-        polars = self.bl_model.get_polars()
+        cl_new_list = self.modify_polars_basis(preprocessed_data, polars, ref_polar_parametrization, polars_to_modify_idx)
 
-        # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        # AirfoilID = id of the reference polar data
-        # the airfoils in bladed have 1 extra (dummy polar) at index 0 and for both the demo-a and IEA model the
-        # first cylindrical airfoil is skipped. So the Bladed polar index is +2
-        #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        for airfoilID in range(len(ref_polar_parametrization['alpha_lin'])):
-            # 1) Determine tilting point cl alpha
-            alpha_lin = ref_polar_parametrization['alpha_lin'][airfoilID]
-            alpha_tes = ref_polar_parametrization['alpha_tes'][airfoilID]
-
-            alpha_tilt = (alpha_lin + alpha_tes) / 2
-
-            f = interp1d(polars[airfoilID + 2]['alpha'][1:], polars[airfoilID + 2]['cl'][1:], fill_value='extrapolate')
-
-            dcl_dalpha_orig = derivative(f, alpha_tilt, 0.5)
-            dcl_dalpha = dcl_dalpha_orig * (1 + factor_clalpha)
-
-            alpha_max = ref_polar_parametrization['alpha_max'][airfoilID]
-            delta_alpha_max = alpha_max * factor_alpha_max
-            alpha_max_new = alpha_max + delta_alpha_max
-            alpha_tes_new = alpha_tes + delta_alpha_max
-
-            f_delta_cl_pre_tes = interp1d([alpha_lin, alpha_tes_new],
-                                          [f(alpha_tilt) + dcl_dalpha * (alpha_lin - alpha_tilt) - f(alpha_lin),
-                                           f(alpha_tilt) + dcl_dalpha * (alpha_tes_new - alpha_tilt) - f(alpha_tes_new)],
-                                          bounds_error=False,
-                                          fill_value=(f(alpha_tilt) + dcl_dalpha * (alpha_lin - alpha_tilt) - f(alpha_lin),
-                                                      f(alpha_tilt) + dcl_dalpha * (alpha_tes_new - alpha_tilt) - f(alpha_tes_new)))
-            f_delta_cl_pre_tes_orig = interp1d([alpha_lin, alpha_tes_new],
-                                               [f(alpha_tilt) + dcl_dalpha_orig * (alpha_lin - alpha_tilt) - f(alpha_lin),
-                                                f(alpha_tilt) + dcl_dalpha_orig * (alpha_tes_new - alpha_tilt) - f(
-                                                    alpha_tes_new)],
-                                               bounds_error=False,
-                                               fill_value=(
-                                               f(alpha_tilt) + dcl_dalpha_orig * (alpha_lin - alpha_tilt) - f(alpha_lin),
-                                               f(alpha_tilt) + dcl_dalpha_orig * (alpha_tes_new - alpha_tilt) - f(alpha_tes_new)))
-
-            cl_new_pre_tes = f(polars[airfoilID + 2]['alpha']) + (f_delta_cl_pre_tes(polars[airfoilID + 2]['alpha']) -
-                                                                  f_delta_cl_pre_tes_orig(polars[airfoilID + 2]['alpha']))
-
-            cl_tes_orig = f(alpha_tes)
-            cl_tes_new = f(alpha_tes_new) + (f_delta_cl_pre_tes(alpha_tes_new) - f_delta_cl_pre_tes_orig(alpha_tes_new))  # f(alpha_tilt) + dcl_dalpha * (alpha_tes_new - alpha_tilt)
-            delta_cl_post_tes = cl_tes_new - cl_tes_orig
-
-            f2 = interp1d(polars[airfoilID + 2]['alpha'] + delta_alpha_max, polars[airfoilID + 2]['cl'] + delta_cl_post_tes, fill_value='extrapolate')
-
-            cl_new_post_tes = f2(polars[airfoilID + 2]['alpha'])
-
-            cl_new = np.hstack((cl_new_pre_tes[np.where(polars[airfoilID + 2]['alpha'] <= alpha_tes_new)],
-                                cl_new_post_tes[np.where(polars[airfoilID + 2]['alpha'] > alpha_tes_new)]))
-
-            f_final = interp1d(polars[airfoilID + 2]['alpha'], cl_new)
-
-            self.bl_model.set_polar_cl(sectionID=airfoilID+2, cl_new=cl_new)
-
-            if False:
-                self.plot_polar_difference(airfoilID=airfoilID,
-                                           alpha=polars[airfoilID+2]['alpha'],
-                                           cl_orig=polars[airfoilID+2]['cl'],
-                                           cl_new=cl_new,
-                                           alpha_control_points_orig=[alpha_lin,
-                                                                      alpha_tes,
-                                                                      alpha_max],
-                                           cl_control_points_orig=f([alpha_lin,
-                                                                     alpha_tes,
-                                                                     alpha_max]),
-                                           alpha_control_points_new=[ref_polar_parametrization['alpha_lin'][airfoilID],
-                                                                     alpha_tes_new,
-                                                                     alpha_max_new],
-                                           cl_control_points_new=f_final([alpha_lin,
-                                                                          alpha_tes_new,
-                                                                          alpha_max_new]))
-
-    def plot_polar_difference(self, airfoilID, alpha, cl_orig, cl_new,
-                              alpha_control_points_orig, cl_control_points_orig,
-                              alpha_control_points_new, cl_control_points_new):
-
-        plt.plot(alpha, cl_orig, label='Cl orig')
-        plt.plot(alpha, cl_new, label='Cl new')
-        plt.plot(alpha_control_points_orig, cl_control_points_orig, linestyle='', marker='*', label='Control points orig')
-        plt.plot(alpha_control_points_new, cl_control_points_new, linestyle='', marker='*', label='Control points new')
-        plt.xlim([alpha_control_points_orig[0]-1, 90])
-        plt.legend()
-        plt.grid()
-        plt.xlabel('alpha / deg.')
-        plt.ylabel('Cl')
-        plt.savefig(os.path.join(self.run_directory, str(airfoilID) + '.png'), dpi=300)
-        plt.close()
-        # plt.show()
+        for ii, airfoilID in enumerate(polars_to_modify_idx):
+            self.bl_model.set_polar_cl(sectionID=airfoilID, cl_new=cl_new_list[ii])
 
     def modify_polars_cd(self, preprocessed_data):
-        factor_cd0 = preprocessed_data['polar_cd0']
-        if factor_cd0 < -1:
-            print('CD values smaller than 0 not allowed -> hard limit at CD = 0')
-            factor_cd0 = -1
 
         polars = self.bl_model.get_polars()
 
-        for airfoilID in range(3):
-            fcd = interp1d(polars[airfoilID + 2]['alpha'], polars[airfoilID + 2]['cd'])
-            fcd_delta = interp1d([-180, 0, 180], [0, fcd(0) * factor_cd0, 0], fill_value='extrapolate')
-            cd_new = fcd(polars[airfoilID + 2]['alpha']) + fcd_delta(polars[airfoilID + 2]['alpha'])
-            self.bl_model.set_polar_cd(sectionID=airfoilID + 2, cd_new=cd_new)
+        print('CAREFUL! Reference cd polar modification hardcoded for IEA 15 MW')
+        polars_to_modify_idx = np.arange(2, 9)
 
-            if False:
-                self.plot_polar_difference_cd(polars[airfoilID + 2]['alpha'], polars[airfoilID + 2]['cd'], cd_new)
+        cd_new_list = self.modify_polars_cd_basis(preprocessed_data, polars, polars_to_modify_idx)
 
-    def plot_polar_difference_cd(self, alpha, cd_orig, cd_new):
-
-        plt.plot(alpha, cd_orig, label='Cd orig')
-        plt.plot(alpha, cd_new, label='Cd new')
-        plt.legend()
-        plt.grid()
-        plt.xlabel('alpha / deg.')
-        plt.ylabel('Cd')
-        plt.show()
+        for ii, airfoilID in enumerate(polars_to_modify_idx):
+            self.bl_model.set_polar_cd(sectionID=airfoilID, cl_new=cd_new_list[ii])
