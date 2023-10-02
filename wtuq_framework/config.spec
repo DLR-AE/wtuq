@@ -22,6 +22,7 @@
         uq_method = string(default=pc)
 
         # PCE specifications
+        pc_regression_model = option('least_squares', 'lasso', 'lars', 'lasso_lars', default='least_squares')
         polynomial_order = integer(default=4)
         nr_collocation_nodes = integer(default=None)
 

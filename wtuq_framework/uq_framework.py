@@ -314,7 +314,7 @@ class UQFramework():
                 'restart_h5': self.config['framework']['uncertainty']['restart_h5'],
                 'run_type': self.config['framework']['uncertainty']['run_type']}
 
-    def main(self, model, features=None, return_postprocessor=False):  # , nr_collocation_nodes=0):
+    def main(self, model, features=None, return_postprocessor=False):
         """
         Main function for the sensitivity analysis. Runs uncertainpy uncertainty quantification for the model
         according to uncertainty settings given in the config
@@ -365,7 +365,9 @@ class UQFramework():
                                                       morris_oat_linear_disturbance=self.config['framework']['uncertainty'][
                                                           'morris_oat_linear_disturbance'],
                                                       morris_oat_linear_disturbance_factor=self.config['framework']['uncertainty'][
-                                                          'morris_oat_linear_disturbance_factor'])
+                                                          'morris_oat_linear_disturbance_factor'],
+                                                      pc_regression_model=self.config['framework']['uncertainty'][
+                                                          'pc_regression_model'])
 
             # todo: U_hat and distribution are currently not saved, so a comparison between different runs of the
             # framework is not possible. Two options for future: 1) Save these objects, 2) move enable comparison of
