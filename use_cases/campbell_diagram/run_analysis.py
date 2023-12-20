@@ -236,8 +236,8 @@ class CampbellDiagramModel(Model):
         nr_ws = result_dict['frequency'].shape[1]
 
         subset_result_dict = dict()
-        subset_result_dict['postprocessing_successful'] = desired_modes
-        subset_result_dict['postprocessing_failed'] = []
+        # subset_result_dict['postprocessing_successful'] = desired_modes
+        # subset_result_dict['postprocessing_failed'] = []
         # subset_result_dict['postprocessing_failed'].append(desired_mode_name)
         # subset_result_dict['frequency'][:, mode_ii] = np.ones(nr_ws) * -999
         # subset_result_dict['damping'][:, mode_ii] = np.ones(nr_ws) * -999
@@ -294,10 +294,7 @@ class CampbellDiagramModel(Model):
         elif postpro_method == 'strict name and order based postpro':
 
             # STEP 1: Picking the modes
-
-            success, picked_mode_indices = simulation_tool.pick_modes_based_on_reference()
-            if not success:
-                return False, 'mode_picking_not_successful'
+            success_mode_picking, picked_mode_indices = simulation_tool.pick_modes_based_on_reference()
 
             for ii in range(len(desired_modes)):
                 subset_result_dict['frequency'][:, ii] = result_dict['frequency'][picked_mode_indices[ii], :]
@@ -321,6 +318,12 @@ class CampbellDiagramModel(Model):
             subset_result_dict['mac_to_ref_edge_mode_six'] = mac_diff_to_ref[5]
             subset_result_dict['mac_to_ref_edge_mode_seven'] = mac_diff_to_ref[6]
 
+            # this should be moved to tool interface
+            success_mode_tracking = [True] * len(desired_modes)
+            for mode_ii in range(len(desired_modes)):
+                if np.any(mac_values[mode_ii, :] < 0.8):
+                    success_mode_tracking[mode_ii] = False
+
             """
             if np.any(mac_values < 0.8):
                 return False, 'mode_tracking_not_correct'
@@ -328,12 +331,16 @@ class CampbellDiagramModel(Model):
             if np.any(mac_values[2, 2:18] < 0.9):
                 return False, 'mode_tracking_not_correct'
             """
-            if np.any(mac_diff_to_ref < 0.5):
-                return False, 'mode_at_first_op_point_too_different_from_ref_mode'
+
+            total_success = np.array(success_mode_picking) * np.array(success_mode_tracking)
+
+        subset_result_dict['success_mode_picking'] = np.array(success_mode_picking)
+        subset_result_dict['success_mode_tracking'] = np.array(success_mode_tracking)
+        subset_result_dict['postprocessing_successful'] = np.array(total_success)
 
         subset_result_dict['total_series'] = np.concatenate((subset_result_dict['frequency'].flatten(),
                                                              subset_result_dict['damping'].flatten()))
-        return True, subset_result_dict
+        return total_success, subset_result_dict
 
     def run(self, **kwargs):
         """
@@ -449,8 +456,8 @@ class CampbellDiagramModel(Model):
         if self.tool_name == 'hawcstab2':
             #try:
             success, campbell_dict = self._postprocessor_hs2(result_dict, self.simulation_tool, postpro_method='strict name and order based postpro')  # based on full name
-            if not success:
-                return None, None, {'postprocessing_successful': []}
+            #if not success:
+            #    return None, None, {'postprocessing_successful': []}
             time = np.arange(campbell_dict['damping'].shape[0]*2)
             #except Exception as exc:
                 # framework continuation is guaranteed no matter which failure appears in the postprocessing of the
@@ -496,60 +503,40 @@ class CampbellDiagramModel(Model):
             return time, None
 
     @staticmethod
-    def edge_mode_one(time, dummy_model_output, campbell_dict):
-        if '1st edgewise mode' in campbell_dict['postprocessing_successful']:
-            freq_and_damp_joined = np.hstack((campbell_dict['frequency'][:, 0], campbell_dict['damping'][:, 0]))
-            return time, freq_and_damp_joined
+    def extract_one_mode_from_campbell(campbell_dict, mode_idx):
+        if campbell_dict['postprocessing_successful'][mode_idx]:
+            freq_and_damp_joined = np.hstack((campbell_dict['frequency'][:, mode_idx], campbell_dict['damping'][:, mode_idx]))
+            return freq_and_damp_joined
         else:
-            return time, None
+            return None
+
+    @staticmethod
+    def edge_mode_one(time, dummy_model_output, campbell_dict):
+        return time, CampbellDiagramModel.extract_one_mode_from_campbell(campbell_dict, 0)
 
     @staticmethod
     def edge_mode_two(time, dummy_model_output, campbell_dict):
-        if '2nd edgewise mode' in campbell_dict['postprocessing_successful']:
-            freq_and_damp_joined = np.hstack((campbell_dict['frequency'][:, 1], campbell_dict['damping'][:, 1]))
-            return time, freq_and_damp_joined
-        else:
-            return time, None
+        return time, CampbellDiagramModel.extract_one_mode_from_campbell(campbell_dict, 1)
 
     @staticmethod
     def edge_mode_three(time, dummy_model_output, campbell_dict):
-        if '3rd edgewise mode' in campbell_dict['postprocessing_successful']:
-            freq_and_damp_joined = np.hstack((campbell_dict['frequency'][:, 2], campbell_dict['damping'][:, 2]))
-            return time, freq_and_damp_joined
-        else:
-            return time, None
+        return time, CampbellDiagramModel.extract_one_mode_from_campbell(campbell_dict, 2)
 
     @staticmethod
     def edge_mode_four(time, dummy_model_output, campbell_dict):
-        if '4th edgewise mode' in campbell_dict['postprocessing_successful']:
-            freq_and_damp_joined = np.hstack((campbell_dict['frequency'][:, 3], campbell_dict['damping'][:, 3]))
-            return time, freq_and_damp_joined
-        else:
-            return time, None
+        return time, CampbellDiagramModel.extract_one_mode_from_campbell(campbell_dict, 3)
 
     @staticmethod
     def edge_mode_five(time, dummy_model_output, campbell_dict):
-        if '5th edgewise mode' in campbell_dict['postprocessing_successful']:
-            freq_and_damp_joined = np.hstack((campbell_dict['frequency'][:, 4], campbell_dict['damping'][:, 4]))
-            return time, freq_and_damp_joined
-        else:
-            return time, None
+        return time, CampbellDiagramModel.extract_one_mode_from_campbell(campbell_dict, 4)
 
     @staticmethod
     def edge_mode_six(time, dummy_model_output, campbell_dict):
-        if '6th edgewise mode' in campbell_dict['postprocessing_successful']:
-            freq_and_damp_joined = np.hstack((campbell_dict['frequency'][:, 5], campbell_dict['damping'][:, 5]))
-            return time, freq_and_damp_joined
-        else:
-            return time, None
+        return time, CampbellDiagramModel.extract_one_mode_from_campbell(campbell_dict, 5)
 
     @staticmethod
     def edge_mode_seven(time, dummy_model_output, campbell_dict):
-        if '7th edgewise mode' in campbell_dict['postprocessing_successful']:
-            freq_and_damp_joined = np.hstack((campbell_dict['frequency'][:, 6], campbell_dict['damping'][:, 6]))
-            return time, freq_and_damp_joined
-        else:
-            return time, None
+        return time, CampbellDiagramModel.extract_one_mode_from_campbell(campbell_dict, 6)
 
 
 if __name__ == '__main__':

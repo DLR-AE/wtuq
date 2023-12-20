@@ -114,19 +114,21 @@ class HAWCStab2Model(HAWC2Model):
         picked_mode_indices = full_mac_matrix[mode_indices_ref].argmax(axis=1)
         picked_mode_indices_hs2 = full_mac_hs2_matrix[mode_indices_ref].argmax(axis=1)
 
-        # checking result
-        # check 1: standard MAC and MAC XP (or MAC_hs2) give same result
-        if not np.all(picked_mode_indices == picked_mode_indices_hs2):
-            print('Picked modes are different based on MAC implementation')
-            return False, None
+        # checking result for each mode individually
+        success = [True] * len(mode_indices_ref)
+        for ii in range(len(mode_indices_ref)):
 
-        # check 2: all MAC values should be higher than 0.5
-        mac_values_picked = [full_mac_matrix[mode_indices_ref[ii], picked_mode_indices[ii]] for ii in range(len(mode_indices_ref))]
-        if np.min(mac_values_picked) < 0.5:
-            print('Minimum MAC value for the picked modes is too small (< 0.5)')
-            return False, None
+            # check 1: standard MAC and MAC XP (or MAC_hs2) give same result
+            if not picked_mode_indices[ii] == picked_mode_indices_hs2[ii]:
+                print('Picked modes are different based on MAC implementation')
+                success[ii] = False
 
-        return True, picked_mode_indices
+            # check 2: MAC value should be higher than 0.5
+            if full_mac_matrix[mode_indices_ref[ii], picked_mode_indices[ii]] < 0.5:
+                print('Minimum MAC value for the picked mode is too small (< 0.5)')
+                success[ii] = False
+
+        return success, picked_mode_indices
 
 
 if __name__ == '__main__':

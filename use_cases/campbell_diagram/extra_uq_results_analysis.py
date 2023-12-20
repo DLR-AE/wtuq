@@ -372,6 +372,7 @@ def result_analysis_PCE(UQResultsAnalysis):
     ws_range = np.array([3, 5, 7, 8, 8.5, 9, 9.5, 10, 10.5, 11, 11.5, 12, 12.5, 13, 13.5, 14, 14.5, 15, 15.5, 16, 17,
                          19, 21, 23, 25])
 
+    input_params_rejected_samples(uq_plots, features)
     compare_QoI_evaluations_per_iter_with_mac_values(UQResultsAnalysis, uq_results, features, ws_range)
     compare_macs(UQResultsAnalysis, uq_results, features, ws_range)
     sobol_index_plots2(UQResultsAnalysis, uq_results, ws_range)
@@ -1087,79 +1088,64 @@ def first_order_campbell_diagrams(UQResultsAnalysis, uq_results, features, feat_
     plt.show()
 
 
-def input_params_rejected_samples(dir, UQResultsAnalysis):
+def input_params_rejected_samples(UQResultsAnalysis, features):
     import json
-    from run_analysis import CampbellDiagramModel
-    from tool_interfaces.hawcstab2_interface import HAWCStab2Model
 
     uq_results = UQResultsAnalysis.get_UQ_results(UQResultsAnalysis.uncertainpy_results[0])
 
-    input_params_accepted = []
-    input_params_rejected_edge_mode_order_not_correct = []
-    input_params_rejected_mode_tracking_not_correct = []
-    input_params_rejected_mode_at_first_op_point_too_different_from_ref_mode = []
+    iteration_run_directories = uq_results.data[uq_results.model_name].iteration_run_directory
 
-    accepted_iteration_run_directories = [os.path.split(run_dir_path)[-1].decode('utf8') for run_dir_path in uq_results.data[uq_results.model_name].iteration_run_directory]
+    print('Careful: features assumed to have the same order as the mode selection from the postprocessor')
+    fig, ax = plt.subplots(nrows=1, ncols=len(features), num='1D input parameters visualization',
+                           figsize=(14, 10), sharey=True)
 
-    for dir in glob.glob(dir):
+    for feat_ii, feature in enumerate(features):
+        input_params_accepted = []
+        input_params_rejected_mode_picking = []
+        input_params_rejected_mode_tracking = []
 
-        if dir[-10:] == 'uq_results':
-            continue
+        for iter_ii, dir in enumerate(iteration_run_directories):
 
-        try:
-            with open(os.path.join(dir, 'input_parameters.txt')) as f:
-                data = f.read()
-            input_params = json.loads(data)
+            try:
+                with open(os.path.join(dir.decode('utf8'), 'input_parameters.txt')) as f:
+                    data = f.read()
+                input_params = json.loads(data)
+            except FileNotFoundError:
+                raise FileNotFoundError('File not found in directory', dir.decode('utf8'))
 
-            simulation_tool = HAWCStab2Model(dir, {'cmb_filename': 'IEA_15MW_RWT_Onshore.cmb'})
+            if uq_results.data[uq_results.model_name].postprocessing_successful[iter_ii, feat_ii]:
+                input_params_accepted.append(input_params)
 
-            result_dict = load_dict_h5py(os.path.join(dir, 'result_dict.hdf5'))
-            success, reason_for_failure = CampbellDiagramModel._postprocessor_hs2(None, result_dict, simulation_tool,
-                                                                                  postpro_method='strict name and order based postpro')
+            if not uq_results.data[uq_results.model_name].success_mode_picking[iter_ii, feat_ii]:
+                input_params_rejected_mode_picking.append(input_params)
 
-        except FileNotFoundError:
-            raise FileNotFoundError('File not found in directory', dir)
+            if not uq_results.data[uq_results.model_name].success_mode_tracking[iter_ii, feat_ii]:
+                input_params_rejected_mode_tracking.append(input_params)
 
-        dir_id = os.path.split(dir)[-1]
+        for iparam, param in enumerate(uq_results.uncertain_parameters):
 
-        if dir_id in accepted_iteration_run_directories:
-            input_params_accepted.append(input_params)
-        else:
-            if reason_for_failure == 'edge_mode_order_not_correct':
-                input_params_rejected_edge_mode_order_not_correct.append(input_params)
-            elif reason_for_failure == 'mode_tracking_not_correct':
-                input_params_rejected_mode_tracking_not_correct.append(input_params)
-            elif reason_for_failure == 'mode_at_first_op_point_too_different_from_ref_mode':
-                input_params_rejected_mode_at_first_op_point_too_different_from_ref_mode.append(input_params)
+            for accepted_input_params in input_params_accepted:
+                ax[feat_ii].plot(accepted_input_params[param], iparam, marker="o", color='C0')
 
+            for rejected_input_params in input_params_rejected_mode_picking:
+                ax[feat_ii].plot(rejected_input_params[param], iparam, marker="s", color='C3')
 
-    fig = plt.figure('1D input parameters visualization')
-    ax = fig.gca()
+            for rejected_input_params in input_params_rejected_mode_tracking:
+                ax[feat_ii].plot(rejected_input_params[param], iparam, marker="x", color='C1')
 
-    for iparam, param in enumerate(uq_results.uncertain_parameters):
+        ax[feat_ii].set_title(feature)
 
-        for accepted_input_params in input_params_accepted:
-            ax.plot(accepted_input_params[param], iparam, marker="o", color='C0')
-
-        for rejected_input_params in input_params_rejected_edge_mode_order_not_correct:
-            ax.plot(rejected_input_params[param], iparam, marker="s", color='C3')
-
-        for rejected_input_params in input_params_rejected_mode_tracking_not_correct:
-            ax.plot(rejected_input_params[param], iparam, marker="x", color='C1')
-
-        for rejected_input_params in input_params_rejected_mode_at_first_op_point_too_different_from_ref_mode:
-            ax.plot(rejected_input_params[param], iparam, marker="+", color='C2')
-
-    ax.yaxis.set_ticks(np.arange(len(uq_results.uncertain_parameters)))
-    ax.set_yticklabels(uq_results.uncertain_parameters)
+    ax[0].yaxis.set_ticks(np.arange(len(uq_results.uncertain_parameters)))
+    ax[0].set_yticklabels(uq_results.uncertain_parameters)
 
     point_accepted = matplotlib.lines.Line2D([0], [0], label='Accepted samples', marker="o", color='C0', linestyle='')
-    point_rejected1 = matplotlib.lines.Line2D([0], [0], label='Rejected samples (edge mode order)', marker="s", color='C3', linestyle='')
+    point_rejected1 = matplotlib.lines.Line2D([0], [0], label='Rejected samples (mode picking)', marker="s", color='C3', linestyle='')
     point_rejected2 = matplotlib.lines.Line2D([0], [0], label='Rejected samples (mode tracking)', marker="x", color='C1', linestyle='')
-    point_rejected3 = matplotlib.lines.Line2D([0], [0], label='Rejected samples (mode too different from reference)', marker="+", color='C2', linestyle='')
 
-    plt.legend(handles=[point_accepted, point_rejected1, point_rejected2, point_rejected3])
+    ax[-1].legend(handles=[point_accepted, point_rejected1, point_rejected2])
+
     plt.tight_layout()
+
     fig.savefig(os.path.join(UQResultsAnalysis.output_dir, 'rejected_samples.png'), dpi=300)
     plt.show()
 
@@ -1340,4 +1326,4 @@ if __name__ == '__main__':
     uq_plots = UQResultsAnalysis([r'/work/verd_he/projects/torque2024_hs2/wtuq/use_cases/campbell_diagram/results/IEA_15MW_pce_4params_25points_NEW/uq_results/CampbellDiagramModel.h5'],
                                  ['hawcstab2'])
     result_analysis_PCE(uq_plots)
-    input_params_rejected_samples(r'/work/verd_he/projects/torque2024_hs2/wtuq/use_cases/campbell_diagram/results/IEA_15MW_pce_4params_25points_NEW/*', uq_plots)
+
