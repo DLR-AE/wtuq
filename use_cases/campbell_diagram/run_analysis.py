@@ -226,7 +226,7 @@ class CampbellDiagramModel(Model):
                                                              subset_result_dict['damping'].flatten()))
         return subset_result_dict
 
-    def _postprocessor_hs2(self, result_dict, simulation_tool, postpro_method='based on full name'):
+    def _postprocessor_hs2(self, result_dict):
         """
         Select the damping and frequency content of specific mode names
         """
@@ -245,7 +245,7 @@ class CampbellDiagramModel(Model):
         subset_result_dict['damping'] = np.zeros((nr_ws, len(desired_modes)))
         subset_result_dict['frequency'] = np.zeros((nr_ws, len(desired_modes)))
 
-        if postpro_method == 'based on full name':
+        if self.simulation_tool.config['postpro_method'] == 'based_on_full_name':
 
             # 1st edge BW
             mode_idx = result_dict['mode_names'].index('BW edge')
@@ -267,7 +267,7 @@ class CampbellDiagramModel(Model):
             subset_result_dict['frequency'][:, 3] = result_dict['frequency'][mode_idx, :]
             subset_result_dict['damping'][:, 3] = result_dict['damping'][mode_idx, :]
 
-        elif postpro_method == 'based on edge in name':
+        elif self.simulation_tool.config['postpro_method'] == 'based_on_edge_in_name':
 
             edge_mode_indices = np.where(['edge' in mode_name for mode_name in result_dict['mode_names']])[0]
 
@@ -291,17 +291,17 @@ class CampbellDiagramModel(Model):
             subset_result_dict['frequency'][:, 3] = result_dict['frequency'][mode_idx, :]
             subset_result_dict['damping'][:, 3] = result_dict['damping'][mode_idx, :]
 
-        elif postpro_method == 'strict name and order based postpro':
+        elif self.simulation_tool.config['postpro_method'] == 'MAC_based_mode_picking_and_tracking':
 
             # STEP 1: Picking the modes
-            success_mode_picking, picked_mode_indices = simulation_tool.pick_modes_based_on_reference()
+            success_mode_picking, picked_mode_indices = self.simulation_tool.pick_modes_based_on_reference()
 
             for ii in range(len(desired_modes)):
                 subset_result_dict['frequency'][:, ii] = result_dict['frequency'][picked_mode_indices[ii], :]
                 subset_result_dict['damping'][:, ii] = result_dict['damping'][picked_mode_indices[ii], :]
 
             # STEP 2: verify mode tracking
-            successful_mode_tracking, mac_values, mac_diff_to_ref = simulation_tool.verify_accurate_hs2_modetracking(picked_mode_indices)
+            successful_mode_tracking, mac_values, mac_diff_to_ref = self.simulation_tool.verify_accurate_hs2_modetracking(picked_mode_indices)
 
             subset_result_dict['mac_edge_mode_one'] = mac_values[0, :]
             subset_result_dict['mac_edge_mode_two'] = mac_values[1, :]
@@ -321,7 +321,7 @@ class CampbellDiagramModel(Model):
             # this should be moved to tool interface
             success_mode_tracking = [True] * len(desired_modes)
             for mode_ii in range(len(desired_modes)):
-                if np.any(mac_values[mode_ii, :] < 0.8):
+                if np.any(mac_values[mode_ii, :] < self.simulation_tool.config['minimum_MAC_mode_tracking']):
                     success_mode_tracking[mode_ii] = False
 
             """
@@ -455,7 +455,7 @@ class CampbellDiagramModel(Model):
 
         if self.tool_name == 'hawcstab2':
             #try:
-            success, campbell_dict = self._postprocessor_hs2(result_dict, self.simulation_tool, postpro_method='strict name and order based postpro')  # based on full name
+            success, campbell_dict = self._postprocessor_hs2(result_dict)
             #if not success:
             #    return None, None, {'postprocessing_successful': []}
             time = np.arange(campbell_dict['damping'].shape[0]*2)

@@ -84,3 +84,13 @@
         data_blade_geom_file = IEA_15MW_RWT_ae.dat
         data_blade_st_file = IEA_15MW_RWT_Blade_st_noFPM.st
         data_pc_file = IEA_15MW_RWT_pc_OpenFASTpolars_3dcorr.dat
+
+        postpro_method = MAC_based_mode_picking_and_tracking
+        path_to_reference_bin = /work/verd_he/projects/IEA-15-240-RWT/HAWC2/IEA-15-240-RWT-Onshore-master-25Points-reference-run/htc/IEA_15MW_RWT_Onshore.bin
+        path_to_reference_cmb = /work/verd_he/projects/IEA-15-240-RWT/HAWC2/IEA-15-240-RWT-Onshore-master-25Points-reference-run/htc/IEA_15MW_RWT_Onshore.cmb
+        n_op_points = 25
+        nmodes = 60
+        ndofs = 732
+        mode_indices_ref = 5, 6, 7, 11, 12, 13, 14
+        minimum_MAC_mode_picking = 0.5
+        minimum_MAC_mode_tracking = 0.8

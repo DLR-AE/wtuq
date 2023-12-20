@@ -60,13 +60,13 @@ class HAWCStab2Model(HAWC2Model):
 
         path_to_cmb = os.path.join(self.iteration_run_directory, 'htc', self.config['cmb_filename'])
         path_to_bin = os.path.join(self.iteration_run_directory, 'htc', self.config['cmb_filename'][:-3] + 'bin')
-        n_op_points = 25
-        nmodes = 60
-        ndofs = 732
+        n_op_points = self.config['n_op_points']
+        nmodes = self.config['nmodes']
+        ndofs = self.config['ndofs']
 
-        path_to_reference_bin = r'/work/verd_he/projects/IEA-15-240-RWT/HAWC2/IEA-15-240-RWT-Onshore-master-25Points-reference-run/htc/IEA_15MW_RWT_Onshore.bin'
-        path_to_reference_cmb = r'/work/verd_he/projects/IEA-15-240-RWT/HAWC2/IEA-15-240-RWT-Onshore-master-25Points-reference-run/htc/IEA_15MW_RWT_Onshore.cmb'
-        mode_indices_ref = [5, 6, 7, 11, 12, 13, 14]
+        path_to_reference_bin = self.config['path_to_reference_bin']
+        path_to_reference_cmb = self.config['path_to_reference_cmb']
+        mode_indices_ref = [int(mode_idx) for mode_idx in self.config['mode_indices_ref']]
 
         full_modal_matrix_ref, freq_ref, damp_ref = gather_modal_matrices(path_to_reference_bin, path_to_reference_cmb,
                                                                           n_op_points, nmodes, ndofs)
@@ -91,12 +91,12 @@ class HAWCStab2Model(HAWC2Model):
 
         path_to_cmb = os.path.join(self.iteration_run_directory, 'htc', self.config['cmb_filename'])
         path_to_bin = os.path.join(self.iteration_run_directory, 'htc', self.config['cmb_filename'][:-3] + 'bin')
-        n_op_points = 25
-        nmodes = 60
-        ndofs = 732
+        n_op_points = self.config['n_op_points']
+        nmodes = self.config['nmodes']
+        ndofs = self.config['ndofs']
 
-        path_to_reference_bin = r'/work/verd_he/projects/IEA-15-240-RWT/HAWC2/IEA-15-240-RWT-Onshore-master-25Points-reference-run/htc/IEA_15MW_RWT_Onshore.bin'
-        path_to_reference_cmb = r'/work/verd_he/projects/IEA-15-240-RWT/HAWC2/IEA-15-240-RWT-Onshore-master-25Points-reference-run/htc/IEA_15MW_RWT_Onshore.cmb'
+        path_to_reference_bin = self.config['path_to_reference_bin']
+        path_to_reference_cmb = self.config['path_to_reference_cmb']
 
         full_modal_matrix_ref, freq_ref, damp_ref = gather_modal_matrices(path_to_reference_bin, path_to_reference_cmb,
                                                                           n_op_points, nmodes, ndofs)
@@ -110,7 +110,7 @@ class HAWCStab2Model(HAWC2Model):
 
         picked_mode_indices = []
         picked_mode_indices_hs2 = []
-        mode_indices_ref = [5, 6, 7, 11, 12, 13, 14]
+        mode_indices_ref = [int(mode_idx) for mode_idx in self.config['mode_indices_ref']]
         picked_mode_indices = full_mac_matrix[mode_indices_ref].argmax(axis=1)
         picked_mode_indices_hs2 = full_mac_hs2_matrix[mode_indices_ref].argmax(axis=1)
 
@@ -124,8 +124,8 @@ class HAWCStab2Model(HAWC2Model):
                 success[ii] = False
 
             # check 2: MAC value should be higher than 0.5
-            if full_mac_matrix[mode_indices_ref[ii], picked_mode_indices[ii]] < 0.5:
-                print('Minimum MAC value for the picked mode is too small (< 0.5)')
+            if full_mac_matrix[mode_indices_ref[ii], picked_mode_indices[ii]] < self.config['minimum_MAC_mode_picking']:
+                print('Minimum MAC value for the picked mode is too small (< minimum_MAC_mode_picking)')
                 success[ii] = False
 
         return success, picked_mode_indices
