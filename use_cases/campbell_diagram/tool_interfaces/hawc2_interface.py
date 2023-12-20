@@ -70,6 +70,7 @@ class HAWC2Model(SimulationModel):
 
         if any(param in preprocessed_data for param in ['blade_flap_stiffness',
                                                         'blade_edge_stiffness',
+                                                        'blade_tors_stiffness',
                                                         'blade_pa_orientation',
                                                         'blade_mass',
                                                         'blade_cog_x',
@@ -142,6 +143,18 @@ class HAWC2Model(SimulationModel):
 
             elif param == 'ds_taubly':
                 self.modify_ds_taubly(value)
+
+            elif param == 'fw_mixing_ratio':
+                self.modify_fw_mixing_ratio(value)
+
+            elif param == 'fw_poly_coef':
+                self.modify_fw_poly_coef(value)
+
+            elif param == 'nw_mixing_ratio':
+                self.modify_nw_mixing_ratio(value)
+
+            elif param == 'nw_poly_coef':
+                self.modify_nw_poly_coef(value)
 
             elif 'blade_damping' in param:
                 self.modify_blade_damping(value, int(param.split('_')[-1]))
@@ -257,6 +270,36 @@ class HAWC2Model(SimulationModel):
         """
         anchor = '#taubly'
         self.modify_line(anchor, 1, value)
+
+    def modify_fw_mixing_ratio(self, value):
+        """
+        """
+        anchor = '#fw'
+        self.modify_line(anchor, 1, value)
+
+    def modify_fw_poly_coef(self, value):
+        """
+        """
+        anchor = '#fw'
+        self.modify_line(anchor, 2, value)
+        self.modify_line(anchor, 3, value)
+        self.modify_line(anchor, 4, value)
+        self.modify_line(anchor, 5, value)
+
+    def modify_nw_mixing_ratio(self, value):
+        """
+        """
+        anchor = '#nw'
+        self.modify_line(anchor, 1, value)
+
+    def modify_nw_poly_coef(self, value):
+        """
+        """
+        anchor = '#nw'
+        self.modify_line(anchor, 2, value)
+        self.modify_line(anchor, 3, value)
+        self.modify_line(anchor, 4, value)
+        self.modify_line(anchor, 5, value)
 
     def modify_cone_angle(self, value):
         """
@@ -391,6 +434,12 @@ class HAWC2Model(SimulationModel):
             edge_stiffness_init = blade_structure[:, 11]
             edge_stiffness_new = edge_stiffness_init * (1 + preprocessed_data['blade_edge_stiffness'])
             blade_structure[:, 11] = edge_stiffness_new
+
+        # torsional stiffness modification
+        if 'blade_tors_stiffness' in preprocessed_data:
+            tors_stiffness_init = blade_structure[:, 12]
+            tors_stiffness_new = tors_stiffness_init * (1 + preprocessed_data['blade_tors_stiffness'])
+            blade_structure[:, 12] = tors_stiffness_new
 
         # mass modification
         if 'blade_mass' in preprocessed_data:

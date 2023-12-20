@@ -21,7 +21,7 @@ uncertain_param_label_dict = {'tower_bending_stiffness': 'Tower bending stiffnes
                               'blade_mass': 'Blade mass',
                               'blade_edge_stiffness': 'Blade edgewise stiffness',
                               'blade_flap_stiffness': 'Blade flapwise stiffness',
-                              'blade_torsional_stiffness': 'Blade torsional stiffness',
+                              'blade_tors_stiffness': 'Blade torsional stiffness',
                               'blade_pa_orientation': 'Blade principal axis orientation',
                               'blade_cog_x': r'Blade cog position $\parallel$ to chord',
                               'blade_cog_y': r'Blade cog position $\bot$ to chord',
@@ -56,7 +56,11 @@ uncertain_param_label_dict = {'tower_bending_stiffness': 'Tower bending stiffnes
                               'ds_b1': 'Dyn. stall param b1',
                               'ds_b2': 'Dyn. stall param b2',
                               'ds_taupre': 'Dyn. stall param taupre',
-                              'ds_taubly': 'Dyn. stall param taubly'}
+                              'ds_taubly': 'Dyn. stall param taubly',
+                              'fw_mixing_ratio': 'BEM far wake mixing ratio',
+                              'fw_poly_coef': 'BEM far wake polynomial coefficients',
+                              'nw_mixing_ratio': 'BEM near wake mixing ratio',
+                              'nw_poly_coef': 'BEM near wake polynomial coefficients'}
 
 
 def campbell_diagram_with_uncertainty_bands(UQResultsAnalysis):
