@@ -1,0 +1,88 @@
+
+[framework]
+    [[uncertainty]]
+        base_directory = ./results
+        run_directory = IEA_15MW_morris_1E-1_remove
+        n_CPU = 1
+
+        uq_method = morris
+        morris_nr_of_repetitions = 30
+        morris_oat_linear_disturbance = True
+        morris_oat_linear_disturbance_factor = 1E-1
+
+    [[parameters]]
+        [[[tower_bending_stiffness]]]
+            radial_distribution = none
+            param_distribution = uniform
+            min = -0.1
+            max = 0.1
+        [[[tower_mass]]]
+            radial_distribution = none
+            param_distribution = uniform
+            min = -0.1
+            max = 0.1
+        [[[polar_clalpha]]]
+            radial_distribution = none
+            param_distribution = uniform
+            min = -0.1
+            max = 0.1
+        [[[blade_chord_tip]]]
+            radial_distribution = none
+            param_distribution = uniform
+            min = -0.1
+            max = 0.1
+       [[[blade_na_x]]]
+            radial_distribution = none
+            param_distribution = uniform
+            min = -0.1
+            max = 0.1
+        [[[blade_flap_stiffness]]]
+            radial_distribution = none
+            param_distribution = uniform
+            min = -0.1
+            max = 0.1
+        [[[blade_edge_stiffness]]]
+            radial_distribution = none
+            param_distribution = uniform
+            min = -0.1
+            max = 0.1
+        [[[blade_mass]]]
+            radial_distribution = none
+            param_distribution = uniform
+            min = -0.1
+            max = 0.1
+        [[[blade_cog_x]]]
+            radial_distribution = none
+            param_distribution = uniform
+            min = -0.1
+            max = 0.1
+        [[[blade_cog_y]]]
+            radial_distribution = none
+            param_distribution = uniform
+            min = -0.01
+            max = 0.01
+        [[[blade_sc_x]]]
+            radial_distribution = none
+            param_distribution = uniform
+            min = -0.1
+            max = 0.1
+        [[[blade_sc_y]]]
+            radial_distribution = none
+            param_distribution = uniform
+            min = -0.01
+            max = 0.01
+
+
+[use_case]
+    [[tool]]
+        tool_name = hawcstab2
+        master_model_directory_path = /work/verd_he/projects/IEA-15-240-RWT/HAWC2/IEA-15-240-RWT-Onshore-master
+        cmb_filename = IEA_15MW_RWT_Onshore.cmb
+        amp_filename = IEA_15MW_RWT_Onshore.amp
+        opt_filename = IEA_15MW_RWT_Onshore.opt
+        main_model_htc_file = IEA_15MW_RWT_Onshore.htc
+        data_shaft_st_file = IEA_15MW_RWT_Shaft_st.dat
+        data_tower_st_file = IEA_15MW_RWT_Tower_st.dat
+        data_blade_geom_file = IEA_15MW_RWT_ae.dat
+        data_blade_st_file = IEA_15MW_RWT_Blade_st_noFPM.st
+        data_pc_file = IEA_15MW_RWT_pc_OpenFASTpolars_3dcorr.dat
