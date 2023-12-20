@@ -166,6 +166,8 @@ class Model(un.Model):
             Flag if a simulation result was found from which a rerun is possible
         result_dict : dict
             Dictionary with simulation results for rerun
+        iteration_run_directory : str
+            Path to iteration directory
         """
         logger = logging.getLogger('wtuq.uq.model._check_restart_options')
         logger.info('Checking restart possibility')
@@ -182,9 +184,9 @@ class Model(un.Model):
                 if equal_dicts(self.input_parameters, available_data, precision=1e-7):
                     logger.info('Reusable simulation result found')
                     result_dict = load_dict_h5py(os.path.join(dir, 'result_dict.hdf5'))
-                    return True, result_dict
+                    return True, result_dict, dir
         logger.info('NO reusable simulation result found')
-        return False, dict()
+        return False, dict(), None
 
     def _check_restart_h5(self, model_name='Model'):
         """
@@ -372,6 +374,11 @@ class UQFramework():
             # todo: U_hat and distribution are currently not saved, so a comparison between different runs of the
             # framework is not possible. Two options for future: 1) Save these objects, 2) move enable comparison of
             # different runs within uncertainpy, such that these objects do not have to be saved, but can be recomputed.
+            for feature in result.data:
+                if feature == result.model_name:
+                    continue
+                cp.save(os.path.join(self.run_directory, 'uq_results', feature + '.npy'), U_hat[feature])
+
             uq.plotting.plot_all(sensitivity=u'total')
 
             uq_plots = UQResultsAnalysis([os.path.join(self.run_directory, 'uq_results', result.model_name + '.h5')],

@@ -50,7 +50,7 @@ class HAWC2Model(SimulationModel):
         self.tower_st_file = os.path.join(self.iteration_run_directory, 'data', self.config['data_tower_st_file'])
         self.blade_geom_file = os.path.join(self.iteration_run_directory, 'data', self.config['data_blade_geom_file'])
         self.blade_st_file = os.path.join(self.iteration_run_directory, 'data', self.config['data_blade_st_file'])
-        self.pc_file = os.path.join(self.iteration_run_directory, 'data', self.config['pc_file'])
+        self.pc_file = os.path.join(self.iteration_run_directory, 'data', self.config['data_pc_file'])
 
         ######### 1) Copy full model to iteration directory
         source_path = self.master_model_directory_path

@@ -337,6 +337,7 @@ class CampbellDiagramModel(Model):
         if self.run_type == 'reference' or self.run_type == 'test':
             raise ReferenceRunExit
 
+        campbell_dict['iteration_run_directory'] = self.simulation_tool.iteration_run_directory
         return time, None, campbell_dict
 
     @staticmethod
@@ -391,9 +392,9 @@ if __name__ == '__main__':
     features = [model.first_edge_bw, model.first_edge_fw, model.second_edge_bw, model.second_edge_fw]
     UQResultsAnalysis = framework.main(model, features=features, return_postprocessor=True)
 
-    result_analysis_EE(UQResultsAnalysis)
+    # result_analysis_EE(UQResultsAnalysis)
     # result_analysis_OAT(UQResultsAnalysis)
-    # result_analysis_PCE(UQResultsAnalysis)
+    result_analysis_PCE(UQResultsAnalysis)
 
     # campbell_diagram_from_OAT(UQResultsAnalysis)
     # campbell_diagram_with_uncertainty_bands(UQResultsAnalysis)
