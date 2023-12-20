@@ -230,14 +230,8 @@ class CampbellDiagramModel(Model):
         """
         Select the damping and frequency content of specific mode names
         """
-        """
-        desired_modes = ['Tower 1st fore-aft mode', 'Tower 1st side-side mode', 'Rotor 1st edgewise backward whirl',
-                         'Rotor 1st edgewise forward whirl', 'Rotor 3rd flapwise cosine cyclic',
-                         'Rotor 3rd flapwise sine cyclic', 'Low-speed Shaft', 'Rotor 2nd edgewise forward whirl']
-        """
-        # IEA 15 MW reference Campbell data (26 Sections) - also suffices for 10 Perturbation Points simulation
-        desired_modes = ['Rotor 1st edgewise backward whirl', 'Rotor 1st edgewise forward whirl',
-                         'Rotor 2nd edgewise backward whirl', 'Rotor 2nd edgewise forward whirl']
+        desired_modes = ['1st edgewise mode', '2nd edgewise mode', '3rd edgewise mode', '4th edgewise mode',
+                         '5th edgewise mode', '6th edgewise mode', '7th edgewise mode']
 
         nr_ws = result_dict['frequency'].shape[1]
 
@@ -309,50 +303,23 @@ class CampbellDiagramModel(Model):
                 subset_result_dict['frequency'][:, ii] = result_dict['frequency'][picked_mode_indices[ii], :]
                 subset_result_dict['damping'][:, ii] = result_dict['damping'][picked_mode_indices[ii], :]
 
-            """
-            if edge_mode_names != ['BW edge', 'Sym edge', 'FW edge', 'Sym edge', 'BW edge', 'BW edge', 'FW edge']:
-                return False, 'edge_mode_order_not_correct'
-
-            edge_mode_indices = np.where(['edge' in mode_name for mode_name in result_dict['mode_names']])[0]
-            edge_mode_names = [result_dict['mode_names'][idx] for idx in edge_mode_indices[:7]]
-        
-            picked_mode_indices = []
-            # 1st edge BW
-            mode_idx = edge_mode_indices[0]
-            picked_mode_indices.append(mode_idx)
-            subset_result_dict['frequency'][:, 0] = result_dict['frequency'][mode_idx, :]
-            subset_result_dict['damping'][:, 0] = result_dict['damping'][mode_idx, :]
-
-            # 1st edge FW
-            mode_idx = edge_mode_indices[2]
-            picked_mode_indices.append(mode_idx)
-            subset_result_dict['frequency'][:, 1] = result_dict['frequency'][mode_idx, :]
-            subset_result_dict['damping'][:, 1] = result_dict['damping'][mode_idx, :]
-
-            # 2nd edge BW
-            mode_idx = edge_mode_indices[4]
-            picked_mode_indices.append(mode_idx)
-            subset_result_dict['frequency'][:, 2] = result_dict['frequency'][mode_idx, :]
-            subset_result_dict['damping'][:, 2] = result_dict['damping'][mode_idx, :]
-
-            # 2nd edge FW
-            mode_idx = edge_mode_indices[6]
-            picked_mode_indices.append(mode_idx)
-            subset_result_dict['frequency'][:, 3] = result_dict['frequency'][mode_idx, :]
-            subset_result_dict['damping'][:, 3] = result_dict['damping'][mode_idx, :]
-            """
-
             # STEP 2: verify mode tracking
             successful_mode_tracking, mac_values, mac_diff_to_ref = simulation_tool.verify_accurate_hs2_modetracking(picked_mode_indices)
 
-            subset_result_dict['mac_first_edge_bw'] = mac_values[0, :]
-            subset_result_dict['mac_first_edge_fw'] = mac_values[1, :]
-            subset_result_dict['mac_second_edge_bw'] = mac_values[2, :]
-            subset_result_dict['mac_second_edge_fw'] = mac_values[3, :]
-            subset_result_dict['mac_to_ref_first_edge_bw'] = mac_diff_to_ref[0]
-            subset_result_dict['mac_to_ref_first_edge_fw'] = mac_diff_to_ref[1]
-            subset_result_dict['mac_to_ref_second_edge_bw'] = mac_diff_to_ref[2]
-            subset_result_dict['mac_to_ref_second_edge_fw'] = mac_diff_to_ref[3]
+            subset_result_dict['mac_edge_mode_one'] = mac_values[0, :]
+            subset_result_dict['mac_edge_mode_two'] = mac_values[1, :]
+            subset_result_dict['mac_edge_mode_three'] = mac_values[2, :]
+            subset_result_dict['mac_edge_mode_four'] = mac_values[3, :]
+            subset_result_dict['mac_edge_mode_five'] = mac_values[4, :]
+            subset_result_dict['mac_edge_mode_six'] = mac_values[5, :]
+            subset_result_dict['mac_edge_mode_seven'] = mac_values[6, :]
+            subset_result_dict['mac_to_ref_edge_mode_one'] = mac_diff_to_ref[0]
+            subset_result_dict['mac_to_ref_edge_mode_two'] = mac_diff_to_ref[1]
+            subset_result_dict['mac_to_ref_edge_mode_three'] = mac_diff_to_ref[2]
+            subset_result_dict['mac_to_ref_edge_mode_four'] = mac_diff_to_ref[3]
+            subset_result_dict['mac_to_ref_edge_mode_five'] = mac_diff_to_ref[4]
+            subset_result_dict['mac_to_ref_edge_mode_six'] = mac_diff_to_ref[5]
+            subset_result_dict['mac_to_ref_edge_mode_seven'] = mac_diff_to_ref[6]
 
             """
             if np.any(mac_values < 0.8):
@@ -528,6 +495,61 @@ class CampbellDiagramModel(Model):
         else:
             return time, None
 
+    @staticmethod
+    def edge_mode_one(time, dummy_model_output, campbell_dict):
+        if '1st edgewise mode' in campbell_dict['postprocessing_successful']:
+            freq_and_damp_joined = np.hstack((campbell_dict['frequency'][:, 0], campbell_dict['damping'][:, 0]))
+            return time, freq_and_damp_joined
+        else:
+            return time, None
+
+    @staticmethod
+    def edge_mode_two(time, dummy_model_output, campbell_dict):
+        if '2nd edgewise mode' in campbell_dict['postprocessing_successful']:
+            freq_and_damp_joined = np.hstack((campbell_dict['frequency'][:, 1], campbell_dict['damping'][:, 1]))
+            return time, freq_and_damp_joined
+        else:
+            return time, None
+
+    @staticmethod
+    def edge_mode_three(time, dummy_model_output, campbell_dict):
+        if '3rd edgewise mode' in campbell_dict['postprocessing_successful']:
+            freq_and_damp_joined = np.hstack((campbell_dict['frequency'][:, 2], campbell_dict['damping'][:, 2]))
+            return time, freq_and_damp_joined
+        else:
+            return time, None
+
+    @staticmethod
+    def edge_mode_four(time, dummy_model_output, campbell_dict):
+        if '4th edgewise mode' in campbell_dict['postprocessing_successful']:
+            freq_and_damp_joined = np.hstack((campbell_dict['frequency'][:, 3], campbell_dict['damping'][:, 3]))
+            return time, freq_and_damp_joined
+        else:
+            return time, None
+
+    @staticmethod
+    def edge_mode_five(time, dummy_model_output, campbell_dict):
+        if '5th edgewise mode' in campbell_dict['postprocessing_successful']:
+            freq_and_damp_joined = np.hstack((campbell_dict['frequency'][:, 4], campbell_dict['damping'][:, 4]))
+            return time, freq_and_damp_joined
+        else:
+            return time, None
+
+    @staticmethod
+    def edge_mode_six(time, dummy_model_output, campbell_dict):
+        if '6th edgewise mode' in campbell_dict['postprocessing_successful']:
+            freq_and_damp_joined = np.hstack((campbell_dict['frequency'][:, 5], campbell_dict['damping'][:, 5]))
+            return time, freq_and_damp_joined
+        else:
+            return time, None
+
+    @staticmethod
+    def edge_mode_seven(time, dummy_model_output, campbell_dict):
+        if '7th edgewise mode' in campbell_dict['postprocessing_successful']:
+            freq_and_damp_joined = np.hstack((campbell_dict['frequency'][:, 6], campbell_dict['damping'][:, 6]))
+            return time, freq_and_damp_joined
+        else:
+            return time, None
 
 
 if __name__ == '__main__':
@@ -546,6 +568,8 @@ if __name__ == '__main__':
                                  model_inputs=framework.give_standard_model_inputs())
 
     features = [model.first_edge_bw, model.first_edge_fw, model.second_edge_bw, model.second_edge_fw]
+    features = [model.edge_mode_one, model.edge_mode_two, model.edge_mode_three, model.edge_mode_four,
+                model.edge_mode_five, model.edge_mode_six, model.edge_mode_seven]
     UQResultsAnalysis = framework.main(model, features=features, return_postprocessor=True)
 
     # result_analysis_EE(UQResultsAnalysis)

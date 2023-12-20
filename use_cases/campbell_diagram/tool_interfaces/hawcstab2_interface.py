@@ -66,7 +66,7 @@ class HAWCStab2Model(HAWC2Model):
 
         path_to_reference_bin = r'/work/verd_he/projects/IEA-15-240-RWT/HAWC2/IEA-15-240-RWT-Onshore-master-25Points-reference-run/htc/IEA_15MW_RWT_Onshore.bin'
         path_to_reference_cmb = r'/work/verd_he/projects/IEA-15-240-RWT/HAWC2/IEA-15-240-RWT-Onshore-master-25Points-reference-run/htc/IEA_15MW_RWT_Onshore.cmb'
-        mode_indices_ref = [5, 7, 12, 14]
+        mode_indices_ref = [5, 6, 7, 11, 12, 13, 14]
 
         full_modal_matrix_ref, freq_ref, damp_ref = gather_modal_matrices(path_to_reference_bin, path_to_reference_cmb,
                                                                           n_op_points, nmodes, ndofs)
@@ -110,7 +110,7 @@ class HAWCStab2Model(HAWC2Model):
 
         picked_mode_indices = []
         picked_mode_indices_hs2 = []
-        mode_indices_ref = [5, 7, 12, 14]
+        mode_indices_ref = [5, 6, 7, 11, 12, 13, 14]
         picked_mode_indices = full_mac_matrix[mode_indices_ref].argmax(axis=1)
         picked_mode_indices_hs2 = full_mac_hs2_matrix[mode_indices_ref].argmax(axis=1)
 

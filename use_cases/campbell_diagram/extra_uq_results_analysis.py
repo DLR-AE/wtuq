@@ -351,6 +351,23 @@ def result_analysis_PCE(UQResultsAnalysis):
                   'second_edge_bw': 'Rotor 2nd edgewise backward whirl',
                   'second_edge_fw': 'Rotor 2nd edgewise forward whirl'}
 
+    features = ['edge_mode_one', 'edge_mode_two', 'edge_mode_three', 'edge_mode_four',
+                'edge_mode_five', 'edge_mode_six', 'edge_mode_seven']
+    feat_colors = {'edge_mode_one': 'C0',
+                   'edge_mode_two': 'C1',
+                   'edge_mode_three': 'C2',
+                   'edge_mode_four': 'C3',
+                   'edge_mode_five': 'C4',
+                   'edge_mode_six': 'C5',
+                   'edge_mode_seven': 'C6'}
+    feat_names = {'edge_mode_one': 'Rotor 1st edgewise backward whirl',
+                  'edge_mode_two': 'Rotor 1st edgewise collective',
+                  'edge_mode_three': 'Rotor 1st edgewise forward whirl',
+                  'edge_mode_four': 'Rotor 2nd edgewise collective',
+                  'edge_mode_five': 'Rotor 2nd edgewise backward whirl A',
+                  'edge_mode_six': 'Rotor 2nd edgewise backward whirl B',
+                  'edge_mode_seven': 'Rotor 2nd edgewise forward whirl'}
+
     # ws_range = np.linspace(3, 25, 12)
     ws_range = np.array([3, 5, 7, 8, 8.5, 9, 9.5, 10, 10.5, 11, 11.5, 12, 12.5, 13, 13.5, 14, 14.5, 15, 15.5, 16, 17,
                          19, 21, 23, 25])
