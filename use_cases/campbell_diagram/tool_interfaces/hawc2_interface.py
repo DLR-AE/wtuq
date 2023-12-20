@@ -9,6 +9,8 @@ from scipy.interpolate import interp1d
 
 from tool_interfaces.simulation_model_interface import SimulationModel, SimulationError
 
+from threading import Timer
+
 
 class HAWC2Model(SimulationModel):
     """
@@ -637,13 +639,19 @@ class HAWC2Model(SimulationModel):
                         htc_content[idx] = lines
                 output.write(str(lines))
 
-    def run_simulation(self):
+    def run_simulation(self, mp_lock):
         """
         Execute HAWC2 simulation
         """
-        exe_homedir = self.config['exe_path']
-        exe_name = self.config['exe_name']
-        call(exe_homedir+exe_name+' HAWC2.htc', cwd=self.iteration_run_directory)
+        # In multiprocessing the HAWC2 call might fail due to a license problem. Likely because the different processes
+        # want to access the license at the same time (once the license is verified, it is no problem to run multiple
+        # processes in parallel)
+        # Solution: acquire lock for 10 seconds, which is (hopefully) enough to do the license check
+        if mp_lock is not None:
+            mp_lock.acquire()
+            Timer(10, mp_lock.release).start()
+
+        call('/opt/HAWC2S/HAWC2S.exe ./htc/IEA_15MW_RWT_Onshore.htc', cwd=self.iteration_run_directory, shell=True)
 
     def extract_results(self):
         """
