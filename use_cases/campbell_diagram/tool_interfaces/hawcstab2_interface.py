@@ -4,6 +4,10 @@ from tool_interfaces.HS2ASCIIReader import HS2Data
 from tool_interfaces.simulation_model_interface import SimulationModel, SimulationError
 from tool_interfaces.hawc2_interface import HAWC2Model
 
+import numpy as np
+import sys
+sys.path.append(r'/work/verd_he/tools/WiVis')
+from hs2_mode_tracking import mode_tracking_check, compare_modes_with_reference, gather_modal_matrices, get_mac_matrices_first_op
 
 class HAWCStab2Model(HAWC2Model):
     """
@@ -52,5 +56,81 @@ class HAWCStab2Model(HAWC2Model):
 
         return result_dict
 
-        except:
-            print('no HS2 result data were found')
+    def verify_accurate_hs2_modetracking(self, mode_indices=None):
+
+        path_to_cmb = os.path.join(self.iteration_run_directory, 'htc', self.config['cmb_filename'])
+        path_to_bin = os.path.join(self.iteration_run_directory, 'htc', self.config['cmb_filename'][:-3] + 'bin')
+        n_op_points = 25
+        nmodes = 60
+        ndofs = 732
+
+        path_to_reference_bin = r'/work/verd_he/projects/IEA-15-240-RWT/HAWC2/IEA-15-240-RWT-Onshore-master-25Points-reference-run/htc/IEA_15MW_RWT_Onshore.bin'
+        path_to_reference_cmb = r'/work/verd_he/projects/IEA-15-240-RWT/HAWC2/IEA-15-240-RWT-Onshore-master-25Points-reference-run/htc/IEA_15MW_RWT_Onshore.cmb'
+        mode_indices_ref = [5, 7, 12, 14]
+
+        full_modal_matrix_ref, freq_ref, damp_ref = gather_modal_matrices(path_to_reference_bin, path_to_reference_cmb,
+                                                                          n_op_points, nmodes, ndofs)
+
+        full_modal_matrix_analysis, freq_analysis, damp_analysis = gather_modal_matrices(path_to_bin, path_to_cmb,
+                                                                                         n_op_points, nmodes, ndofs)
+
+        mac_difference_to_ref, mac_hs2_difference_to_ref = compare_modes_with_reference(full_modal_matrix_ref, freq_ref, damp_ref,
+                                                                                        full_modal_matrix_analysis, freq_analysis,
+                                                                                        damp_analysis, mode_indices_ref, mode_indices)
+
+        mac_difference, mac_hs2_difference = mode_tracking_check(path_to_bin, path_to_cmb, n_op_points, nmodes, ndofs)
+
+        if mode_indices is not None:
+            mac_difference_desired_modes = mac_hs2_difference[mode_indices, :]
+        else:
+            mac_difference_desired_modes = mac_hs2_difference
+
+        return True, mac_difference_desired_modes, mac_difference_to_ref
+
+    def pick_modes_based_on_reference(self, mode_indices=None):
+
+        path_to_cmb = os.path.join(self.iteration_run_directory, 'htc', self.config['cmb_filename'])
+        path_to_bin = os.path.join(self.iteration_run_directory, 'htc', self.config['cmb_filename'][:-3] + 'bin')
+        n_op_points = 25
+        nmodes = 60
+        ndofs = 732
+
+        path_to_reference_bin = r'/work/verd_he/projects/IEA-15-240-RWT/HAWC2/IEA-15-240-RWT-Onshore-master-25Points-reference-run/htc/IEA_15MW_RWT_Onshore.bin'
+        path_to_reference_cmb = r'/work/verd_he/projects/IEA-15-240-RWT/HAWC2/IEA-15-240-RWT-Onshore-master-25Points-reference-run/htc/IEA_15MW_RWT_Onshore.cmb'
+
+        full_modal_matrix_ref, freq_ref, damp_ref = gather_modal_matrices(path_to_reference_bin, path_to_reference_cmb,
+                                                                          n_op_points, nmodes, ndofs)
+
+        full_modal_matrix_analysis, freq_analysis, damp_analysis = gather_modal_matrices(path_to_bin, path_to_cmb,
+                                                                                         n_op_points, nmodes, ndofs)
+
+        full_mac_matrix, full_mac_hs2_matrix = get_mac_matrices_first_op(full_modal_matrix_ref, freq_ref, damp_ref,
+                                                                         full_modal_matrix_analysis, freq_analysis,
+                                                                         damp_analysis)
+
+        picked_mode_indices = []
+        picked_mode_indices_hs2 = []
+        mode_indices_ref = [5, 7, 12, 14]
+        picked_mode_indices = full_mac_matrix[mode_indices_ref].argmax(axis=1)
+        picked_mode_indices_hs2 = full_mac_hs2_matrix[mode_indices_ref].argmax(axis=1)
+
+        # checking result
+        # check 1: standard MAC and MAC XP (or MAC_hs2) give same result
+        if not np.all(picked_mode_indices == picked_mode_indices_hs2):
+            print('Picked modes are different based on MAC implementation')
+            return False, None
+
+        # check 2: all MAC values should be higher than 0.5
+        mac_values_picked = [full_mac_matrix[mode_indices_ref[ii], picked_mode_indices[ii]] for ii in range(len(mode_indices_ref))]
+        if np.min(mac_values_picked) < 0.5:
+            print('Minimum MAC value for the picked modes is too small (< 0.5)')
+            return False, None
+
+        return True, picked_mode_indices
+
+
+if __name__ == '__main__':
+    iteration_run_directory = r'/work/verd_he/projects/torque2024_hs2/wtuq/use_cases/campbell_diagram/results/IEA_15MW_pce_blade-only_NEW/f7fd7d0c-8f92-11ee-9d92-b88584bcc377'
+    config = {'cmb_filename': 'IEA_15MW_RWT_Onshore_Blade.cmb', 'amp_filename': 'IEA_15MW_RWT_Onshore_Blade.amp', 'opt_filename': 'IEA_15MW_RWT_Onshore_12Points.opt'}
+    test = HAWCStab2Model(iteration_run_directory, config)
+    result_dict = test.extract_results()

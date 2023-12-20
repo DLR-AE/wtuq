@@ -226,6 +226,148 @@ class CampbellDiagramModel(Model):
                                                              subset_result_dict['damping'].flatten()))
         return subset_result_dict
 
+    def _postprocessor_hs2(self, result_dict, simulation_tool, postpro_method='based on full name'):
+        """
+        Select the damping and frequency content of specific mode names
+        """
+        """
+        desired_modes = ['Tower 1st fore-aft mode', 'Tower 1st side-side mode', 'Rotor 1st edgewise backward whirl',
+                         'Rotor 1st edgewise forward whirl', 'Rotor 3rd flapwise cosine cyclic',
+                         'Rotor 3rd flapwise sine cyclic', 'Low-speed Shaft', 'Rotor 2nd edgewise forward whirl']
+        """
+        # IEA 15 MW reference Campbell data (26 Sections) - also suffices for 10 Perturbation Points simulation
+        desired_modes = ['Rotor 1st edgewise backward whirl', 'Rotor 1st edgewise forward whirl',
+                         'Rotor 2nd edgewise backward whirl', 'Rotor 2nd edgewise forward whirl']
+
+        nr_ws = result_dict['frequency'].shape[1]
+
+        subset_result_dict = dict()
+        subset_result_dict['postprocessing_successful'] = desired_modes
+        subset_result_dict['postprocessing_failed'] = []
+        # subset_result_dict['postprocessing_failed'].append(desired_mode_name)
+        # subset_result_dict['frequency'][:, mode_ii] = np.ones(nr_ws) * -999
+        # subset_result_dict['damping'][:, mode_ii] = np.ones(nr_ws) * -999
+        subset_result_dict['mode_names'] = desired_modes
+        subset_result_dict['damping'] = np.zeros((nr_ws, len(desired_modes)))
+        subset_result_dict['frequency'] = np.zeros((nr_ws, len(desired_modes)))
+
+        if postpro_method == 'based on full name':
+
+            # 1st edge BW
+            mode_idx = result_dict['mode_names'].index('BW edge')
+            subset_result_dict['frequency'][:, 0] = result_dict['frequency'][mode_idx, :]
+            subset_result_dict['damping'][:, 0] = result_dict['damping'][mode_idx, :]
+
+            # 1st edge FW
+            mode_idx = result_dict['mode_names'].index('FW edge')
+            subset_result_dict['frequency'][:, 1] = result_dict['frequency'][mode_idx, :]
+            subset_result_dict['damping'][:, 1] = result_dict['damping'][mode_idx, :]
+
+            # 2nd edge BW
+            mode_idx = np.where(np.array(result_dict['mode_names']) == 'BW edge')[0][1]
+            subset_result_dict['frequency'][:, 2] = result_dict['frequency'][mode_idx, :]
+            subset_result_dict['damping'][:, 2] = result_dict['damping'][mode_idx, :]
+
+            # 2nd edge FW
+            mode_idx = np.where(np.array(result_dict['mode_names']) == 'FW edge')[0][1]
+            subset_result_dict['frequency'][:, 3] = result_dict['frequency'][mode_idx, :]
+            subset_result_dict['damping'][:, 3] = result_dict['damping'][mode_idx, :]
+
+        elif postpro_method == 'based on edge in name':
+
+            edge_mode_indices = np.where(['edge' in mode_name for mode_name in result_dict['mode_names']])[0]
+
+            # 1st edge BW
+            mode_idx = edge_mode_indices[0]
+            subset_result_dict['frequency'][:, 0] = result_dict['frequency'][mode_idx, :]
+            subset_result_dict['damping'][:, 0] = result_dict['damping'][mode_idx, :]
+
+            # 1st edge FW
+            mode_idx = edge_mode_indices[2]
+            subset_result_dict['frequency'][:, 1] = result_dict['frequency'][mode_idx, :]
+            subset_result_dict['damping'][:, 1] = result_dict['damping'][mode_idx, :]
+
+            # 2nd edge BW
+            mode_idx = edge_mode_indices[4]
+            subset_result_dict['frequency'][:, 2] = result_dict['frequency'][mode_idx, :]
+            subset_result_dict['damping'][:, 2] = result_dict['damping'][mode_idx, :]
+
+            # 2nd edge FW
+            mode_idx = edge_mode_indices[6]
+            subset_result_dict['frequency'][:, 3] = result_dict['frequency'][mode_idx, :]
+            subset_result_dict['damping'][:, 3] = result_dict['damping'][mode_idx, :]
+
+        elif postpro_method == 'strict name and order based postpro':
+
+            # STEP 1: Picking the modes
+
+            success, picked_mode_indices = simulation_tool.pick_modes_based_on_reference()
+            if not success:
+                return False, 'mode_picking_not_successful'
+
+            for ii in range(len(desired_modes)):
+                subset_result_dict['frequency'][:, ii] = result_dict['frequency'][picked_mode_indices[ii], :]
+                subset_result_dict['damping'][:, ii] = result_dict['damping'][picked_mode_indices[ii], :]
+
+            """
+            if edge_mode_names != ['BW edge', 'Sym edge', 'FW edge', 'Sym edge', 'BW edge', 'BW edge', 'FW edge']:
+                return False, 'edge_mode_order_not_correct'
+
+            edge_mode_indices = np.where(['edge' in mode_name for mode_name in result_dict['mode_names']])[0]
+            edge_mode_names = [result_dict['mode_names'][idx] for idx in edge_mode_indices[:7]]
+        
+            picked_mode_indices = []
+            # 1st edge BW
+            mode_idx = edge_mode_indices[0]
+            picked_mode_indices.append(mode_idx)
+            subset_result_dict['frequency'][:, 0] = result_dict['frequency'][mode_idx, :]
+            subset_result_dict['damping'][:, 0] = result_dict['damping'][mode_idx, :]
+
+            # 1st edge FW
+            mode_idx = edge_mode_indices[2]
+            picked_mode_indices.append(mode_idx)
+            subset_result_dict['frequency'][:, 1] = result_dict['frequency'][mode_idx, :]
+            subset_result_dict['damping'][:, 1] = result_dict['damping'][mode_idx, :]
+
+            # 2nd edge BW
+            mode_idx = edge_mode_indices[4]
+            picked_mode_indices.append(mode_idx)
+            subset_result_dict['frequency'][:, 2] = result_dict['frequency'][mode_idx, :]
+            subset_result_dict['damping'][:, 2] = result_dict['damping'][mode_idx, :]
+
+            # 2nd edge FW
+            mode_idx = edge_mode_indices[6]
+            picked_mode_indices.append(mode_idx)
+            subset_result_dict['frequency'][:, 3] = result_dict['frequency'][mode_idx, :]
+            subset_result_dict['damping'][:, 3] = result_dict['damping'][mode_idx, :]
+            """
+
+            # STEP 2: verify mode tracking
+            successful_mode_tracking, mac_values, mac_diff_to_ref = simulation_tool.verify_accurate_hs2_modetracking(picked_mode_indices)
+
+            subset_result_dict['mac_first_edge_bw'] = mac_values[0, :]
+            subset_result_dict['mac_first_edge_fw'] = mac_values[1, :]
+            subset_result_dict['mac_second_edge_bw'] = mac_values[2, :]
+            subset_result_dict['mac_second_edge_fw'] = mac_values[3, :]
+            subset_result_dict['mac_to_ref_first_edge_bw'] = mac_diff_to_ref[0]
+            subset_result_dict['mac_to_ref_first_edge_fw'] = mac_diff_to_ref[1]
+            subset_result_dict['mac_to_ref_second_edge_bw'] = mac_diff_to_ref[2]
+            subset_result_dict['mac_to_ref_second_edge_fw'] = mac_diff_to_ref[3]
+
+            """
+            if np.any(mac_values < 0.8):
+                return False, 'mode_tracking_not_correct'
+
+            if np.any(mac_values[2, 2:18] < 0.9):
+                return False, 'mode_tracking_not_correct'
+            """
+            if np.any(mac_diff_to_ref < 0.5):
+                return False, 'mode_at_first_op_point_too_different_from_ref_mode'
+
+        subset_result_dict['total_series'] = np.concatenate((subset_result_dict['frequency'].flatten(),
+                                                             subset_result_dict['damping'].flatten()))
+        return True, subset_result_dict
+
     def run(self, **kwargs):
         """
         Method which is executed by uncertainpy with varying sets of input parameters. This is the general interface
@@ -258,7 +400,10 @@ class CampbellDiagramModel(Model):
         # check if restart based on available iteration_run_directory is an option
         restart_available = False
         if self.restart is True:
-            restart_available, result_dict = self._check_restart_options()
+            restart_available, result_dict, iteration_run_directory_restart_data = self._check_restart_options()
+
+            from tool_interfaces.hawcstab2_interface import HAWCStab2Model
+            self.simulation_tool = HAWCStab2Model(iteration_run_directory_restart_data, self.tool_config)
 
         if not restart_available:
             # make unique iteration run directory for this framework iteration
@@ -322,7 +467,7 @@ class CampbellDiagramModel(Model):
             campbell_dict = {'TEST': np.array([1, 3, 4]), 'TEST2': ['list'], 'TEST3': 'text'}
             return time, damping, campbell_dict
 
-        if self.tool_name == 'bladed-lin' or self.tool_name == 'hawcstab2':
+        if self.tool_name == 'bladed-lin':
             try:
                 campbell_dict = self._postprocessor_bladedlin(result_dict, variable_mode_tracking=False)
                 # campbell_dict['postprocessing_success'] = postprocessing_success
@@ -333,6 +478,17 @@ class CampbellDiagramModel(Model):
                 # framework continuation is guaranteed no matter which failure appears in the postprocessing of the
                 # simulation model for this iteration.
                 logger.exception('Iteration uuid {}: Unknown exception in postprocessing -> {}'.format(iteration_id, exc))
+
+        if self.tool_name == 'hawcstab2':
+            #try:
+            success, campbell_dict = self._postprocessor_hs2(result_dict, self.simulation_tool, postpro_method='strict name and order based postpro')  # based on full name
+            if not success:
+                return None, None, {'postprocessing_successful': []}
+            time = np.arange(campbell_dict['damping'].shape[0]*2)
+            #except Exception as exc:
+                # framework continuation is guaranteed no matter which failure appears in the postprocessing of the
+                # simulation model for this iteration.
+            #    logger.exception('Iteration uuid {}: Unknown exception in postprocessing -> {}'.format(iteration_id, exc))
 
         if self.run_type == 'reference' or self.run_type == 'test':
             raise ReferenceRunExit

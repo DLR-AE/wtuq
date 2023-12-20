@@ -64,7 +64,7 @@ class Model(un.Model):
 
     def __init__(self, model_inputs=dict()):
         # mandatory
-        super(Model, self).__init__(ignore=True)  # labels=None,
+        super(Model, self).__init__(ignore=False)  # labels=None,
 
         run_directory = model_inputs['run_directory']
         restart_directory = model_inputs['restart_directory']
