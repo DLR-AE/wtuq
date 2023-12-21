@@ -3,7 +3,7 @@
     [[uncertainty]]
         base_directory = ./results
         run_directory = IEA_15MW_oat_1E-1
-        n_CPU = 1
+        n_CPU = 12
 
         uq_method = oat
         #morris_nr_of_repetitions = 1
@@ -107,6 +107,26 @@
             param_distribution = uniform
             min = -0.1
             max = 0.1
+        [[[fw_mixing_ratio]]]
+            radial_distribution = none
+            param_distribution = uniform
+            min = -0.1
+            max = 0.1
+        [[[fw_poly_coef]]]
+            radial_distribution = none
+            param_distribution = uniform
+            min = -0.1
+            max = 0.1
+        [[[nw_mixing_ratio]]]
+            radial_distribution = none
+            param_distribution = uniform
+            min = -0.1
+            max = 0.1
+        [[[nw_poly_coef]]]
+            radial_distribution = none
+            param_distribution = uniform
+            min = -0.1
+            max = 0.1
 
         [[[blade_damping_1]]]
             radial_distribution = none
@@ -191,6 +211,11 @@
             param_distribution = uniform
             min = -0.1
             max = 0.1
+        [[[blade_tors_stiffness]]]
+            radial_distribution = none
+            param_distribution = uniform
+            min = -0.1
+            max = 0.1
         [[[blade_mass]]]
             radial_distribution = none
             param_distribution = uniform
@@ -231,10 +256,10 @@
 [use_case]
     [[tool]]
         tool_name = hawcstab2
-        master_model_directory_path = /work/verd_he/projects/IEA-15-240-RWT/HAWC2/IEA-15-240-RWT-Onshore-master
+        master_model_directory_path = /work/verd_he/projects/IEA-15-240-RWT/HAWC2/IEA-15-240-RWT-Onshore-master-25Points
         cmb_filename = IEA_15MW_RWT_Onshore.cmb
         amp_filename = IEA_15MW_RWT_Onshore.amp
-        opt_filename = IEA_15MW_RWT_Onshore.opt
+        opt_filename = IEA_15MW_RWT_Onshore_25Points.opt
         main_model_htc_file = IEA_15MW_RWT_Onshore.htc
         data_shaft_st_file = IEA_15MW_RWT_Shaft_st.dat
         data_tower_st_file = IEA_15MW_RWT_Tower_st.dat
@@ -250,4 +275,4 @@
         ndofs = 732
         mode_indices_ref = 5, 6, 7, 11, 12, 13, 14
         minimum_MAC_mode_picking = 0.5
-        minimum_MAC_mode_tracking = 0.8
+        minimum_MAC_mode_tracking = 0.5
