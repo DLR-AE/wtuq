@@ -32,8 +32,7 @@
 
         # Custom UQ methods
         morris_nr_of_repetitions = integer(default=10)
-        morris_oat_linear_disturbance = boolean(default=True)
-        morris_oat_linear_disturbance_factor = float(default=1E-3)
+        morris_oat_linear_disturbance_value = float(default=1E-2)
 
     [[parameters]]
 

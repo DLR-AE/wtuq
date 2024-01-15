@@ -364,10 +364,10 @@ class UQFramework():
                                                           'nr_mc_samples'],
                                                       morris_nr_of_repetitions=self.config['framework']['uncertainty'][
                                                           'morris_nr_of_repetitions'],
-                                                      morris_oat_linear_disturbance=self.config['framework']['uncertainty'][
-                                                          'morris_oat_linear_disturbance'],
-                                                      morris_oat_linear_disturbance_factor=self.config['framework']['uncertainty'][
-                                                          'morris_oat_linear_disturbance_factor'],
+                                                      morris_oat_linear_disturbance_value=self.config['framework']['uncertainty'][
+                                                          'morris_oat_linear_disturbance_value'],
+                                                      pc_sampling_method=self.config['framework']['uncertainty'][
+                                                          'pc_sampling_method'],
                                                       pc_regression_model=self.config['framework']['uncertainty'][
                                                           'pc_regression_model'])
 
@@ -690,74 +690,52 @@ def morris_screening(self, **kwargs):
 
     nr_of_repetitions = kwargs['morris_nr_of_repetitions']  # = Number of starting conditions from which OAT is done
     all_distributions = self.create_distribution()
-    sample_means = [distr.mom([1])[0] for distr in all_distributions]
 
     uncertain_params = self.convert_uncertain_parameters()
     nr_params = len(uncertain_params)
     sampler = qmc.Sobol(d=nr_params, seed=0)
-    sample = sampler.random(n=nr_of_repetitions)
-    # NEW: only array with nr_of_repetitions of the reference coordinates  # -> array with :nr_of_repetitions of the reference coordinates and nr_of_repetitions: values as disturbance
+    all_samples = sampler.random(n=nr_of_repetitions).T
 
-    # if linear disturbances are preferred, the nr_of_repetitions: samples are modified
-    # if kwargs['morris_oat_linear_disturbance'] is True:
-    sample = np.tile(sample, (2, 1))
-    sample[nr_of_repetitions:] = sample[nr_of_repetitions:] + \
-                                 kwargs['morris_oat_linear_disturbance_factor']
-    #sample[nr_of_repetitions:] = sample[:nr_of_repetitions] + \
-    #                             kwargs['morris_oat_linear_disturbance_factor']  # * sample[nr_of_repetitions:]
-
-    # build the normalized_nodes array, which will has following format:
-    # row 1: unmodified reference coordinates 1
-    # row 2: disturbed reference coordinate 1, unmodified reference coordinates 1 for all other parameters
-    # row 3: disturbed reference coordinate 2, unmodified reference coordinates 1 for all other parameters
-    # ...
-    # row nr_parameters+1: unmodified reference coordinates 2
-    # row nr_parameters+2: disturbed reference coordinate 1, unmodified reference coordinates 2 for all other parameters
-    # ...
-    normalized_nodes = np.repeat(sample[:nr_of_repetitions], nr_params+1, axis=0)
-    for repetition_idx, b_values in enumerate(sample[nr_of_repetitions:, :]):
-        np.fill_diagonal(normalized_nodes[repetition_idx * (nr_params+1) + 1:
-                                          (repetition_idx+1) * (nr_params+1), :], b_values)
-
-    # scale the nodes with the input distributions
-    normalized_nodes = normalized_nodes.T
-    nodes = np.zeros(normalized_nodes.shape)
+    # normalize to correct distribution ranges
     distr_ranges = [[distr.lower[0], distr.upper[0]] for distr in all_distributions]
     for idx, distr_range in enumerate(distr_ranges):
-        nodes[idx, :] = distr_range[0] + (distr_range[1]-distr_range[0]) * normalized_nodes[idx, :]
+        all_samples[idx, :] = distr_range[0] + (distr_range[1]-distr_range[0]) * all_samples[idx, :]
+
+    # build the nodes array, which will has following format:
+    # col 1: unmodified reference coordinates 1
+    # col 2: disturbed reference coordinate 1, unmodified reference coordinates 1 for all other parameters
+    # col 3: disturbed reference coordinate 2, unmodified reference coordinates 1 for all other parameters
+    # ...
+    # col nr_parameters+1: unmodified reference coordinates 2
+    # col nr_parameters+2: disturbed reference coordinate 1, unmodified reference coordinates 2 for all other parameters
+    # ...
+    nodes = np.repeat(all_samples, nr_params+1, axis=1)
+
+    disturbance_term_each_param = []
+    for idx_param in range(nr_params):
+        distribution_range = all_distributions[idx_param].upper[0] - all_distributions[idx_param].lower[0]
+        disturbance_term_each_param.append(distribution_range * kwargs['morris_oat_linear_disturbance_value'])
+
+    for repetition_idx in range(nr_of_repetitions):
+        for param_idx in range(nr_params):
+            nodes[param_idx, repetition_idx*(nr_params+1) + param_idx + 1] = nodes[param_idx, repetition_idx*(nr_params+1) + param_idx + 1] + disturbance_term_each_param[param_idx]
 
     # run the simulations
     data = self.runmodel.run(nodes, uncertain_params)
 
     for feature in data.data:
 
-        """
-        # masking 
-        # check which iterations are not none or do not have any nan values in the qoi
-        # mask the evaluations
-        # mask the nodes
-        # mask the nr_of_repetitions
-        not_nan_mask = []
-        for i_eval, evaluation in enumerate(data.data[feature].evaluations):
-            if np.any(np.isnan(evaluation)) == False:
-                not_nan_mask.append(i_eval)
-
-        if not_nan_mask == []:
-            continue
-            
-        evaluations = np.array(data.data[feature].evaluations[not_nan_mask])
-        """
-
         nr_of_qoi = len(data.data[feature].time)
         ee = np.zeros((nr_params, nr_of_qoi, nr_of_repetitions))
 
         evaluations = data.data[feature].evaluations
+
         for repetition in range(nr_of_repetitions):
 
             # evaluation difference between disturbed and reference computation
             y_delta = [evaluations[repetition * (nr_params+1) + 1 + i_param] - evaluations[repetition * (nr_params+1)] for i_param in range(nr_params)]
             # normalized input disturbance
-            x_delta = nodes[:, repetition * (nr_params+1) + 1: (repetition+1) * (nr_params+1)] - nodes[:, [repetition * (nr_params+1)]]
+            x_delta = np.ones(nr_params) * kwargs['morris_oat_linear_disturbance_value']
 
             # if both reference and disturbed were nans, the s_oat will be nan instead of array with nans
             for ii in range(len(y_delta)):
@@ -767,16 +745,16 @@ def morris_screening(self, **kwargs):
 
             y_delta = np.array(y_delta)
             if nr_of_qoi > 1:
-                ee[:, :, repetition] = (y_delta / x_delta.sum(axis=0).reshape((y_delta.shape[0], 1))).reshape((nr_params, nr_of_qoi))
+                ee[:, :, repetition] = (y_delta / x_delta.reshape((y_delta.shape[0], 1))).reshape((nr_params, nr_of_qoi))
             else:
-                ee[:, :, repetition] = (y_delta / x_delta.sum(axis=0)).reshape((nr_params, nr_of_qoi))
+                ee[:, :, repetition] = (y_delta / x_delta).reshape((nr_params, nr_of_qoi))
 
-        # skip_repetition = 24
-        # print('CAREFUL {}the Morris repetition manually removed from uncertainty analysis, because postprocessing was'
-        #      ' not good enough.'.format(skip_repetition))
+        skip_repetition = 61
+        print('CAREFUL {}the Morris repetition manually removed from uncertainty analysis, because postprocessing was'
+              ' not good enough.'.format(skip_repetition))
 
-        # if ee.shape[-1] >= skip_repetition:
-        #     ee = np.delete(ee, skip_repetition-1, -1)
+        if ee.shape[-1] >= skip_repetition:
+            ee = np.delete(ee, skip_repetition-1, -1)
 
         data.data[feature].ee = ee
         data.data[feature].ee_mean = np.nanmean(np.abs(ee), axis=-1)
@@ -801,33 +779,17 @@ def oat_screening(self, **kwargs):
 
     uncertain_params = self.convert_uncertain_parameters()
     nr_params = len(uncertain_params)
-    nr_samples_per_param = 2  # lower and upper
     all_distributions = self.create_distribution()
     sample_means = [distr.mom([1])[0] for distr in all_distributions]
 
-    nodes = np.tile(np.array(sample_means).reshape(len(sample_means), 1), nr_params*nr_samples_per_param)
-    nodes_mean = np.copy(nodes)
+    nodes = np.tile(np.array(sample_means).reshape(len(sample_means), 1), nr_params+1)
 
     for idx_param in range(nr_params):
-        if kwargs['morris_oat_linear_disturbance'] is True:
-            logger.info('The uncertain parameters are disturbed by {} x Distribution.lower and '
-                        '{} x Distribution.upper. This makes sure only the linear effect of the uncertain parameter '
-                        'is computed.'.format(kwargs['morris_oat_linear_disturbance_factor'],
-                                              kwargs['morris_oat_linear_disturbance_factor']))
-            nodes[idx_param, idx_param*nr_samples_per_param] = all_distributions[idx_param].lower[0] * kwargs['morris_oat_linear_disturbance_factor']
-            nodes[idx_param, idx_param * nr_samples_per_param + 1] = all_distributions[idx_param].upper[0] * kwargs['morris_oat_linear_disturbance_factor']
-        else:
-            logger.info('The uncertain parameters are disturbed by -Distribution.lower and +Distribution.upper. '
-                        'This could give false results for nonlinear functions.')
-            nodes[idx_param, idx_param * nr_samples_per_param] = all_distributions[idx_param].lower[0]
-            nodes[idx_param, idx_param * nr_samples_per_param + 1] = all_distributions[idx_param].upper[0]
+        distribution_range = all_distributions[idx_param].upper[0] - all_distributions[idx_param].lower[0]
+        disturbance_term = distribution_range * kwargs['morris_oat_linear_disturbance_value']
+        nodes[idx_param, idx_param+1] = nodes[idx_param, idx_param] + disturbance_term
 
-    deltas = np.sum(nodes - nodes_mean, axis=0)
-    # print('Distribution widths for OAT calculation manipulated')
-    # deltas[68] = -0.01
-    # deltas[69] = 0.01
-    # deltas[72] = -0.01
-    # deltas[73] = 0.01
+    # deltas = np.sum(nodes - nodes_mean, axis=0)
 
     data = self.runmodel.run(nodes, uncertain_params)
 
@@ -835,8 +797,8 @@ def oat_screening(self, **kwargs):
         if feature == 'CampbellDiagramModel':
             continue
 
-        s_oat = [(data.data[feature].evaluations[i] - data.data[feature].evaluations[i+1]) / (deltas[i] - deltas[i+1])
-                 for i in range(0, nr_params*nr_samples_per_param, 2)]
+        s_oat = [(data.data[feature].evaluations[i+1] - data.data[feature].evaluations[0]) / (kwargs['morris_oat_linear_disturbance_value'])
+                 for i in range(nr_params)]
 
         # if both low and high were nans, the s_oat will be nan instead of array with nans
         #nr_campbell_diagram_points = len(data.data[feature].time)
