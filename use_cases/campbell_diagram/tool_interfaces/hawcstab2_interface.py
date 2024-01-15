@@ -7,7 +7,7 @@ from tool_interfaces.hawc2_interface import HAWC2Model
 import numpy as np
 import sys
 sys.path.append(r'/work/verd_he/tools/WiVis')
-from hs2_mode_tracking import mode_tracking_check, compare_modes_with_reference, gather_modal_matrices, get_mac_matrices_first_op
+from hs2_mode_tracking import mode_tracking_check, compare_modes_with_reference, gather_modal_matrices, get_mac_matrices_first_op, compare_modes_with_reference_last_op
 
 class HAWCStab2Model(HAWC2Model):
     """
@@ -68,24 +68,28 @@ class HAWCStab2Model(HAWC2Model):
         path_to_reference_cmb = self.config['path_to_reference_cmb']
         mode_indices_ref = [int(mode_idx) for mode_idx in self.config['mode_indices_ref']]
 
-        full_modal_matrix_ref, freq_ref, damp_ref = gather_modal_matrices(path_to_reference_bin, path_to_reference_cmb,
-                                                                          n_op_points, nmodes, ndofs)
+        full_modal_matrix_ref, freq_ref, damp_ref, realpart_ref, imagpart_ref = gather_modal_matrices(path_to_reference_bin, path_to_reference_cmb,
+                                                                                                      n_op_points, nmodes, ndofs)
 
-        full_modal_matrix_analysis, freq_analysis, damp_analysis = gather_modal_matrices(path_to_bin, path_to_cmb,
-                                                                                         n_op_points, nmodes, ndofs)
+        full_modal_matrix_analysis, freq_analysis, damp_analysis, realpart_analysis, imagpart_analysis = gather_modal_matrices(path_to_bin, path_to_cmb,
+                                                                                                                               n_op_points, nmodes, ndofs)
 
-        mac_difference_to_ref, mac_hs2_difference_to_ref = compare_modes_with_reference(full_modal_matrix_ref, freq_ref, damp_ref,
-                                                                                        full_modal_matrix_analysis, freq_analysis,
-                                                                                        damp_analysis, mode_indices_ref, mode_indices)
+        mac_difference_to_ref, mac_hs2_difference_to_ref = compare_modes_with_reference(full_modal_matrix_ref, freq_ref, damp_ref, realpart_ref, imagpart_ref,
+                                                                                        full_modal_matrix_analysis, freq_analysis, realpart_analysis, imagpart_analysis,
+                                                                                        damp_analysis, mode_indices_ref, mode_indices, with_damp=self.config['with_damp'])
 
-        mac_difference, mac_hs2_difference = mode_tracking_check(path_to_bin, path_to_cmb, n_op_points, nmodes, ndofs)
+        mac_difference_to_ref_last_op, mac_hs2_difference_to_ref_last_op = compare_modes_with_reference_last_op(full_modal_matrix_ref, freq_ref, damp_ref, realpart_ref, imagpart_ref,
+                                                                                        full_modal_matrix_analysis, freq_analysis, realpart_analysis, imagpart_analysis,
+                                                                                        damp_analysis, mode_indices_ref, mode_indices, with_damp=self.config['with_damp'])
+
+        mac_difference, mac_hs2_difference = mode_tracking_check(path_to_bin, path_to_cmb, n_op_points, nmodes, ndofs, with_damp=self.config['with_damp'])
 
         if mode_indices is not None:
             mac_difference_desired_modes = mac_hs2_difference[mode_indices, :]
         else:
             mac_difference_desired_modes = mac_hs2_difference
 
-        return True, mac_difference_desired_modes, mac_difference_to_ref
+        return mac_difference_desired_modes, mac_difference_to_ref, mac_difference_to_ref_last_op, mac_hs2_difference_to_ref_last_op
 
     def pick_modes_based_on_reference(self, mode_indices=None):
 
@@ -98,15 +102,15 @@ class HAWCStab2Model(HAWC2Model):
         path_to_reference_bin = self.config['path_to_reference_bin']
         path_to_reference_cmb = self.config['path_to_reference_cmb']
 
-        full_modal_matrix_ref, freq_ref, damp_ref = gather_modal_matrices(path_to_reference_bin, path_to_reference_cmb,
-                                                                          n_op_points, nmodes, ndofs)
+        full_modal_matrix_ref, freq_ref, damp_ref, realpart_ref, imagpart_ref = gather_modal_matrices(path_to_reference_bin, path_to_reference_cmb,
+                                                                                                      n_op_points, nmodes, ndofs)
 
-        full_modal_matrix_analysis, freq_analysis, damp_analysis = gather_modal_matrices(path_to_bin, path_to_cmb,
-                                                                                         n_op_points, nmodes, ndofs)
+        full_modal_matrix_analysis, freq_analysis, damp_analysis, realpart_analysis, imagpart_analysis = gather_modal_matrices(path_to_bin, path_to_cmb,
+                                                                                                                               n_op_points, nmodes, ndofs)
 
-        full_mac_matrix, full_mac_hs2_matrix = get_mac_matrices_first_op(full_modal_matrix_ref, freq_ref, damp_ref,
-                                                                         full_modal_matrix_analysis, freq_analysis,
-                                                                         damp_analysis)
+        full_mac_matrix, full_mac_hs2_matrix = get_mac_matrices_first_op(full_modal_matrix_ref, freq_ref, damp_ref, realpart_ref, imagpart_ref,
+                                                                         full_modal_matrix_analysis, freq_analysis, damp_analysis, realpart_analysis, imagpart_analysis,
+                                                                         with_damp=self.config['with_damp'])
 
         picked_mode_indices = []
         picked_mode_indices_hs2 = []
@@ -114,21 +118,7 @@ class HAWCStab2Model(HAWC2Model):
         picked_mode_indices = full_mac_matrix[mode_indices_ref].argmax(axis=1)
         picked_mode_indices_hs2 = full_mac_hs2_matrix[mode_indices_ref].argmax(axis=1)
 
-        # checking result for each mode individually
-        success = [True] * len(mode_indices_ref)
-        for ii in range(len(mode_indices_ref)):
-
-            # check 1: standard MAC and MAC XP (or MAC_hs2) give same result
-            if not picked_mode_indices[ii] == picked_mode_indices_hs2[ii]:
-                print('Picked modes are different based on MAC implementation')
-                success[ii] = False
-
-            # check 2: MAC value should be higher than 0.5
-            if full_mac_matrix[mode_indices_ref[ii], picked_mode_indices[ii]] < self.config['minimum_MAC_mode_picking']:
-                print('Minimum MAC value for the picked mode is too small (< minimum_MAC_mode_picking)')
-                success[ii] = False
-
-        return success, picked_mode_indices
+        return picked_mode_indices, picked_mode_indices_hs2, full_mac_matrix, full_mac_hs2_matrix
 
 
 if __name__ == '__main__':

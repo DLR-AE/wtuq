@@ -230,8 +230,8 @@ class CampbellDiagramModel(Model):
         """
         Select the damping and frequency content of specific mode names
         """
-        desired_modes = ['1st edgewise mode', '2nd edgewise mode', '3rd edgewise mode', '4th edgewise mode',
-                         '5th edgewise mode', '6th edgewise mode', '7th edgewise mode']
+        desired_modes = ['edge_mode_one', 'edge_mode_two', 'edge_mode_three', 'edge_mode_four',
+                         'edge_mode_five', 'edge_mode_six', 'edge_mode_seven']
 
         nr_ws = result_dict['frequency'].shape[1]
 
@@ -294,14 +294,28 @@ class CampbellDiagramModel(Model):
         elif self.simulation_tool.config['postpro_method'] == 'MAC_based_mode_picking_and_tracking':
 
             # STEP 1: Picking the modes
-            success_mode_picking, picked_mode_indices = self.simulation_tool.pick_modes_based_on_reference()
+            picked_mode_indices, picked_mode_indices_hs2, full_mac_matrix, full_mac_hs2_matrix = self.simulation_tool.pick_modes_based_on_reference()
+
+            # checking result for each mode individually
+            success_mode_picking = [True] * len(self.config['mode_indices_ref'])
+            for ii in range(len(self.config['mode_indices_ref'])):
+
+                # check 1: standard MAC and MAC XP (or MAC_hs2) give same result, just check, not used for selection
+                if not picked_mode_indices[ii] == picked_mode_indices_hs2[ii]:
+                    print('Picked modes are different based on MAC implementation')
+                    # success[ii] = False
+
+                # check 2: MAC value should be higher than threshold
+                if full_mac_matrix[mode_indices_ref[ii], picked_mode_indices[ii]] < self.config['minimum_MAC_mode_picking']:
+                    print('Minimum MAC value for the picked mode is too small (< minimum_MAC_mode_picking)')
+                    success_mode_picking[ii] = False
 
             for ii in range(len(desired_modes)):
                 subset_result_dict['frequency'][:, ii] = result_dict['frequency'][picked_mode_indices[ii], :]
                 subset_result_dict['damping'][:, ii] = result_dict['damping'][picked_mode_indices[ii], :]
 
             # STEP 2: verify mode tracking
-            successful_mode_tracking, mac_values, mac_diff_to_ref = self.simulation_tool.verify_accurate_hs2_modetracking(picked_mode_indices)
+            mac_values, mac_diff_to_ref, mac_diff_to_ref_last_op, mac_hs2_diff_to_ref_last_op= self.simulation_tool.verify_accurate_hs2_modetracking(picked_mode_indices)
 
             subset_result_dict['mac_edge_mode_one'] = mac_values[0, :]
             subset_result_dict['mac_edge_mode_two'] = mac_values[1, :]
@@ -317,25 +331,94 @@ class CampbellDiagramModel(Model):
             subset_result_dict['mac_to_ref_edge_mode_five'] = mac_diff_to_ref[4]
             subset_result_dict['mac_to_ref_edge_mode_six'] = mac_diff_to_ref[5]
             subset_result_dict['mac_to_ref_edge_mode_seven'] = mac_diff_to_ref[6]
+            subset_result_dict['mac_to_all_ref_modes_edge_mode_one'] = full_mac_matrix[int(self.simulation_tool.config['mode_indices_ref'][0])]
+            subset_result_dict['mac_to_all_ref_modes_edge_mode_two'] = full_mac_matrix[int(self.simulation_tool.config['mode_indices_ref'][1])]
+            subset_result_dict['mac_to_all_ref_modes_edge_mode_three'] = full_mac_matrix[int(self.simulation_tool.config['mode_indices_ref'][2])]
+            subset_result_dict['mac_to_all_ref_modes_edge_mode_four'] = full_mac_matrix[int(self.simulation_tool.config['mode_indices_ref'][3])]
+            subset_result_dict['mac_to_all_ref_modes_edge_mode_five'] = full_mac_matrix[int(self.simulation_tool.config['mode_indices_ref'][4])]
+            subset_result_dict['mac_to_all_ref_modes_edge_mode_six'] = full_mac_matrix[int(self.simulation_tool.config['mode_indices_ref'][5])]
+            subset_result_dict['mac_to_all_ref_modes_edge_mode_seven'] = full_mac_matrix[int(self.simulation_tool.config['mode_indices_ref'][6])]
+            subset_result_dict['mac_hs2_to_all_ref_modes_edge_mode_one'] = full_mac_hs2_matrix[int(self.simulation_tool.config['mode_indices_ref'][0])]
+            subset_result_dict['mac_hs2_to_all_ref_modes_edge_mode_two'] = full_mac_hs2_matrix[int(self.simulation_tool.config['mode_indices_ref'][1])]
+            subset_result_dict['mac_hs2_to_all_ref_modes_edge_mode_three'] = full_mac_hs2_matrix[int(self.simulation_tool.config['mode_indices_ref'][2])]
+            subset_result_dict['mac_hs2_to_all_ref_modes_edge_mode_four'] = full_mac_hs2_matrix[int(self.simulation_tool.config['mode_indices_ref'][3])]
+            subset_result_dict['mac_hs2_to_all_ref_modes_edge_mode_five'] = full_mac_hs2_matrix[int(self.simulation_tool.config['mode_indices_ref'][4])]
+            subset_result_dict['mac_hs2_to_all_ref_modes_edge_mode_six'] = full_mac_hs2_matrix[int(self.simulation_tool.config['mode_indices_ref'][5])]
+            subset_result_dict['mac_hs2_to_all_ref_modes_edge_mode_seven'] = full_mac_hs2_matrix[int(self.simulation_tool.config['mode_indices_ref'][6])]
+
+            subset_result_dict['mac_to_ref_last_op_edge_mode_one'] = mac_diff_to_ref_last_op[0]
+            subset_result_dict['mac_to_ref_last_op_edge_mode_two'] = mac_diff_to_ref_last_op[1]
+            subset_result_dict['mac_to_ref_last_op_edge_mode_three'] = mac_diff_to_ref_last_op[2]
+            subset_result_dict['mac_to_ref_last_op_edge_mode_four'] = mac_diff_to_ref_last_op[3]
+            subset_result_dict['mac_to_ref_last_op_edge_mode_five'] = mac_diff_to_ref_last_op[4]
+            subset_result_dict['mac_to_ref_last_op_edge_mode_six'] = mac_diff_to_ref_last_op[5]
+            subset_result_dict['mac_to_ref_last_op_edge_mode_seven'] = mac_diff_to_ref_last_op[6]
+            subset_result_dict['mac_hs2_to_ref_last_op_edge_mode_one'] = mac_hs2_diff_to_ref_last_op[0]
+            subset_result_dict['mac_hs2_to_ref_last_op_edge_mode_two'] = mac_hs2_diff_to_ref_last_op[1]
+            subset_result_dict['mac_hs2_to_ref_last_op_edge_mode_three'] = mac_hs2_diff_to_ref_last_op[2]
+            subset_result_dict['mac_hs2_to_ref_last_op_edge_mode_four'] = mac_hs2_diff_to_ref_last_op[3]
+            subset_result_dict['mac_hs2_to_ref_last_op_edge_mode_five'] = mac_hs2_diff_to_ref_last_op[4]
+            subset_result_dict['mac_hs2_to_ref_last_op_edge_mode_six'] = mac_hs2_diff_to_ref_last_op[5]
+            subset_result_dict['mac_hs2_to_ref_last_op_edge_mode_seven'] = mac_hs2_diff_to_ref_last_op[6]
 
             # this should be moved to tool interface
             success_mode_tracking = [True] * len(desired_modes)
             for mode_ii in range(len(desired_modes)):
-                if np.any(mac_values[mode_ii, :] < self.simulation_tool.config['minimum_MAC_mode_tracking']):
+                if np.any(mac_values[mode_ii, 5:14] < self.simulation_tool.config['minimum_MAC_mode_tracking']):
                     success_mode_tracking[mode_ii] = False
+                #if np.any(mac_values[mode_ii, :] < self.simulation_tool.config['minimum_MAC_mode_tracking']):
+                #    success_mode_tracking[mode_ii] = False
 
-            """
-            if np.any(mac_values < 0.8):
-                return False, 'mode_tracking_not_correct'
-
-            if np.any(mac_values[2, 2:18] < 0.9):
-                return False, 'mode_tracking_not_correct'
-            """
+                if mac_diff_to_ref_last_op[mode_ii] < self.simulation_tool.config['minimum_MAC_mode_tracking_wrt_ref']:
+                    success_mode_tracking[mode_ii] = False
 
             total_success = np.array(success_mode_picking) * np.array(success_mode_tracking)
 
+        elif self.simulation_tool.config['postpro_method'] == 'MAC_based_mode_picking_and_tracking_mode_specific_thresholds':
+
+            mode_picking_thresholds = [float(mode_picking_threshold) for mode_picking_threshold in self.simulation_tool.config['minimum_MAC_mode_picking_mode_specific']]
+            mode_tracking_thresholds = [float(mode_tracking_threshold) for mode_tracking_threshold in self.simulation_tool.config['minimum_MAC_mode_tracking_mode_specific']]
+            mode_tracking_wrt_ref_thresholds = [float(mode_tracking_wrt_ref_threshold) for mode_tracking_wrt_ref_threshold in self.simulation_tool.config['minimum_MAC_mode_tracking_wrt_ref_mode_specific']]
+            mode_indices_ref = [int(mode_idx) for mode_idx in self.simulation_tool.config['mode_indices_ref']]
+
+            # STEP 1: Picking the modes
+            picked_mode_indices, picked_mode_indices_hs2, full_mac_matrix, full_mac_hs2_matrix = self.simulation_tool.pick_modes_based_on_reference()
+
+            # checking result for each mode individually
+            success_mode_picking = [True] * len(mode_indices_ref)
+            for ii in range(len(desired_modes)):
+                if full_mac_matrix[mode_indices_ref[ii], picked_mode_indices[ii]] < mode_picking_thresholds[ii]:
+                    success_mode_picking[ii] = False
+
+            for ii in range(len(desired_modes)):
+                subset_result_dict['frequency'][:, ii] = result_dict['frequency'][picked_mode_indices[ii], :]
+                subset_result_dict['damping'][:, ii] = result_dict['damping'][picked_mode_indices[ii], :]
+
+            # STEP 2: verify mode tracking
+            mac_values, mac_diff_to_ref, mac_diff_to_ref_last_op, mac_hs2_diff_to_ref_last_op = self.simulation_tool.verify_accurate_hs2_modetracking(picked_mode_indices)
+
+            for ii in range(len(desired_modes)):
+                subset_result_dict['mac_{}'.format(desired_modes[ii])] = mac_values[ii, :]
+                subset_result_dict['mac_to_ref_{}'.format(desired_modes[ii])] = mac_diff_to_ref[ii]
+                subset_result_dict['mac_to_all_ref_modes_{}'.format(desired_modes[ii])] = full_mac_matrix[int(self.simulation_tool.config['mode_indices_ref'][ii])]
+                subset_result_dict['mac_hs2_to_all_ref_modes_{}'.format(desired_modes[ii])] = full_mac_hs2_matrix[int(self.simulation_tool.config['mode_indices_ref'][ii])]
+                subset_result_dict['mac_to_ref_last_op_{}'.format(desired_modes[ii])] = mac_diff_to_ref_last_op[ii]
+                subset_result_dict['mac_hs2_to_ref_last_op_{}'.format(desired_modes[ii])] = mac_hs2_diff_to_ref_last_op[ii]
+
+            success_mode_tracking = [True] * len(desired_modes)
+            success_mode_tracking_to_ref_last_op = [True] * len(desired_modes)
+            for mode_ii in range(len(desired_modes)):
+                if np.any(mac_values[mode_ii, 5:14] < mode_tracking_thresholds[mode_ii]):
+                    success_mode_tracking[mode_ii] = False
+
+                if mac_diff_to_ref_last_op[mode_ii] < mode_tracking_wrt_ref_thresholds[mode_ii]:
+                    success_mode_tracking_to_ref_last_op[mode_ii] = False
+
+            total_success = np.array(success_mode_picking) * np.array(success_mode_tracking) * np.array(success_mode_tracking_to_ref_last_op)
+
         subset_result_dict['success_mode_picking'] = np.array(success_mode_picking)
         subset_result_dict['success_mode_tracking'] = np.array(success_mode_tracking)
+        subset_result_dict['success_mode_tracking_to_ref_last_op'] = np.array(success_mode_tracking_to_ref_last_op)
         subset_result_dict['postprocessing_successful'] = np.array(total_success)
 
         subset_result_dict['total_series'] = np.concatenate((subset_result_dict['frequency'].flatten(),
