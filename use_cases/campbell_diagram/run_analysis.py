@@ -561,7 +561,7 @@ if __name__ == '__main__':
 
     # result_analysis_EE(UQResultsAnalysis)
     # result_analysis_OAT(UQResultsAnalysis)
-    result_analysis_PCE(UQResultsAnalysis)
+    # result_analysis_PCE(UQResultsAnalysis)
 
     # campbell_diagram_from_OAT(UQResultsAnalysis)
     # campbell_diagram_with_uncertainty_bands(UQResultsAnalysis)

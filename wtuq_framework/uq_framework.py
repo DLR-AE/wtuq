@@ -371,25 +371,26 @@ class UQFramework():
                                                       pc_regression_model=self.config['framework']['uncertainty'][
                                                           'pc_regression_model'])
 
-            # todo: U_hat and distribution are currently not saved, so a comparison between different runs of the
-            # framework is not possible. Two options for future: 1) Save these objects, 2) move enable comparison of
-            # different runs within uncertainpy, such that these objects do not have to be saved, but can be recomputed.
-            for feature in result.data:
-                if feature == result.model_name:
-                    continue
-                cp.save(os.path.join(self.run_directory, 'uq_results', feature + '.npy'), U_hat[feature])
+            if method == 'pc':
+                # todo: U_hat and distribution are currently not saved, so a comparison between different runs of the
+                # framework is not possible. Two options for future: 1) Save these objects, 2) move enable comparison of
+                # different runs within uncertainpy, such that these objects do not have to be saved, but can be recomputed.
+                for feature in result.data:
+                    if feature == result.model_name:
+                        continue
+                    cp.save(os.path.join(self.run_directory, 'uq_results', feature + '.npy'), U_hat[feature])
 
-            uq.plotting.plot_all(sensitivity=u'total')
+            #uq.plotting.plot_all(sensitivity=u'total')
 
             uq_plots = UQResultsAnalysis([os.path.join(self.run_directory, 'uq_results', result.model_name + '.h5')],
                                          [self.config['use_case']['tool']['tool_name']])
-            uq_plots.read_results(model_name=result.model_name)
-            uq_plots.compare_sobol_indices()
-            uq_plots.show_input_parameters_per_iter()
-            uq_plots.compare_QoI_evaluations_per_iter()
-            uq_plots.surrogate_model_verification()
-            uq_plots.plot_surface(U_hat, distribution, model_name=result.model_name)
-            uq_plots.plot_distributions(U_hat, distribution, model_name=result.model_name)
+            #uq_plots.read_results(model_name=result.model_name)
+            #uq_plots.compare_sobol_indices()
+            #uq_plots.show_input_parameters_per_iter()
+            #uq_plots.compare_QoI_evaluations_per_iter()
+            #uq_plots.surrogate_model_verification()
+            #uq_plots.plot_surface(U_hat, distribution, model_name=result.model_name)
+            #uq_plots.plot_distributions(U_hat, distribution, model_name=result.model_name)
 
             print('Successfully finished')
             if return_postprocessor:
