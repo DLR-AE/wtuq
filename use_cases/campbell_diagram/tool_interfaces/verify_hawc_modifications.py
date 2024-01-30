@@ -210,8 +210,3 @@ def verify_all_modifications():
 
 if __name__ == '__main__':
     verify_all_modifications()
-
-    #original_dir = r'Z:\projects\IEA-15-240-RWT\HAWC2\IEA-15-240-RWT-Onshore-master'
-    #modified_dir = r'C:\Users\verd_he\Desktop\remove'
-
-    #verify_modifications(original_dir, modified_dir)

@@ -6,8 +6,8 @@ from tool_interfaces.hawc2_interface import HAWC2Model
 
 import numpy as np
 import sys
-sys.path.append(r'/work/verd_he/tools/WiVis')
-from hs2_mode_tracking import mode_tracking_check, compare_modes_with_reference, gather_modal_matrices, get_mac_matrices_first_op, compare_modes_with_reference_last_op
+
+from wivis.hs2_mode_tracking import mode_tracking_check, compare_modes_with_reference, gather_modal_matrices, get_mac_matrices_first_op, compare_modes_with_reference_last_op
 
 class HAWCStab2Model(HAWC2Model):
     """
@@ -119,10 +119,3 @@ class HAWCStab2Model(HAWC2Model):
         picked_mode_indices_hs2 = full_mac_hs2_matrix[mode_indices_ref].argmax(axis=1)
 
         return picked_mode_indices, picked_mode_indices_hs2, full_mac_matrix, full_mac_hs2_matrix
-
-
-if __name__ == '__main__':
-    iteration_run_directory = r'/work/verd_he/projects/torque2024_hs2/wtuq/use_cases/campbell_diagram/results/IEA_15MW_pce_blade-only_NEW/f7fd7d0c-8f92-11ee-9d92-b88584bcc377'
-    config = {'cmb_filename': 'IEA_15MW_RWT_Onshore_Blade.cmb', 'amp_filename': 'IEA_15MW_RWT_Onshore_Blade.amp', 'opt_filename': 'IEA_15MW_RWT_Onshore_12Points.opt'}
-    test = HAWCStab2Model(iteration_run_directory, config)
-    result_dict = test.extract_results()
