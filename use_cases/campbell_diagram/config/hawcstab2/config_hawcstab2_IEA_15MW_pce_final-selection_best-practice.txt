@@ -2,24 +2,15 @@
 [framework]
     [[uncertainty]]
         base_directory = ./results
-        run_directory = IEA_15MW_pce
-        n_CPU = 12
+        run_directory = IEA_15MW_pce_final-selection_best-practice
+        n_CPU = 36
 
         uq_method = pc
-        # nr_collocation_nodes = 33
+        polynomial_order = 4	
+        nr_collocation_nodes = 1000
 
     [[parameters]]
         [[[tower_bending_stiffness]]]
-            radial_distribution = none
-            param_distribution = uniform
-            min = -0.1
-            max = 0.1
-        [[[tower_mass]]]
-            radial_distribution = none
-            param_distribution = uniform
-            min = -0.1
-            max = 0.1
-        [[[polar_clalpha]]]
             radial_distribution = none
             param_distribution = uniform
             min = -0.1
@@ -29,17 +20,12 @@
             param_distribution = uniform
             min = -0.1
             max = 0.1
-       [[[blade_na_x]]]
-            radial_distribution = none
-            param_distribution = uniform
-            min = -0.1
-            max = 0.1
-        [[[blade_flap_stiffness]]]
-            radial_distribution = none
-            param_distribution = uniform
-            min = -0.1
-            max = 0.1
         [[[blade_edge_stiffness]]]
+            radial_distribution = none
+            param_distribution = uniform
+            min = -0.1
+            max = 0.1
+        [[[blade_tors_stiffness]]]
             radial_distribution = none
             param_distribution = uniform
             min = -0.1
@@ -54,30 +40,20 @@
             param_distribution = uniform
             min = -0.1
             max = 0.1
-        [[[blade_cog_y]]]
-            radial_distribution = none
-            param_distribution = uniform
-            min = -0.01
-            max = 0.01
         [[[blade_sc_x]]]
             radial_distribution = none
             param_distribution = uniform
             min = -0.1
             max = 0.1
-        [[[blade_sc_y]]]
-            radial_distribution = none
-            param_distribution = uniform
-            min = -0.01
-            max = 0.01
 
 
 [use_case]
     [[tool]]
         tool_name = hawcstab2
-        master_model_directory_path = /work/verd_he/projects/IEA-15-240-RWT/HAWC2/IEA-15-240-RWT-Onshore-master-12Points
+        master_model_directory_path = ./reference_model/hawcstab2/IEA-15-240-RWT-Onshore-master-25Points
         cmb_filename = IEA_15MW_RWT_Onshore.cmb
         amp_filename = IEA_15MW_RWT_Onshore.amp
-        opt_filename = IEA_15MW_RWT_Onshore_12Points.opt
+        opt_filename = IEA_15MW_RWT_Onshore_25Points.opt
         main_model_htc_file = IEA_15MW_RWT_Onshore.htc
         data_shaft_st_file = IEA_15MW_RWT_Shaft_st.dat
         data_tower_st_file = IEA_15MW_RWT_Tower_st.dat
@@ -85,12 +61,14 @@
         data_blade_st_file = IEA_15MW_RWT_Blade_st_noFPM.st
         data_pc_file = IEA_15MW_RWT_pc_OpenFASTpolars_3dcorr.dat
 
-        postpro_method = MAC_based_mode_picking_and_tracking
-        path_to_reference_bin = /work/verd_he/projects/IEA-15-240-RWT/HAWC2/IEA-15-240-RWT-Onshore-master-25Points-reference-run/htc/IEA_15MW_RWT_Onshore.bin
-        path_to_reference_cmb = /work/verd_he/projects/IEA-15-240-RWT/HAWC2/IEA-15-240-RWT-Onshore-master-25Points-reference-run/htc/IEA_15MW_RWT_Onshore.cmb
+        path_to_reference_bin = ./reference_model/hawcstab2/IEA-15-240-RWT-Onshore-master-25Points-reference-run/htc/IEA_15MW_RWT_Onshore.bin
+        path_to_reference_cmb = ./reference_model/hawcstab2/IEA-15-240-RWT-Onshore-master-25Points-reference-run/htc/IEA_15MW_RWT_Onshore.cmb
         n_op_points = 25
         nmodes = 60
         ndofs = 732
         mode_indices_ref = 5, 6, 7, 11, 12, 13, 14
-        minimum_MAC_mode_picking = 0.5
-        minimum_MAC_mode_tracking = 0.8
+        postpro_method = MAC_based_mode_picking_and_tracking_mode_specific_thresholds
+        minimum_MAC_mode_picking_mode_specific = 0.0, 0.0, 0.0, 0.0, 0.85, 0.82, 0.9
+        minimum_MAC_mode_tracking_mode_specific = 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7
+        minimum_MAC_mode_tracking_wrt_ref_mode_specific = 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5
+        with_damp = False
